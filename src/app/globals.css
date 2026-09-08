@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --color-white: #fffff3;
+  --color-blue: #bfdbfe;
+  --color-yellow: #fff085;
+  --color-pink: #fccfe9;
+  --color-orange: #ffd7a7;
+  --color-red: #ffa3a2;
+  --color-mud: #1d1919;
+
+  --font-jetbold: "JetBrainsMono", sans-serif;
+  --font-jetreg: "jetreg", sans-serif;
+  --font-jetexbold: "jetexbold", sans-serif;
+  --font-striper: "Striper", sans-serif;
+}
+
+@font-face {
+  font-family: JetBrainsMono;
+  src: url(../../public/fonts/JetBrainsMono_Complete/JetBrainsMono_Complete/Fonts/OTF/JetBrainsMono-Bold.otf)
+    format("opentype");
+}
+
+@font-face {
+  font-family: jetreg;
+  src: url(../../public/fonts/JetBrainsMono_Complete/JetBrainsMono_Complete/Fonts/OTF/JetBrainsMono-Regular.otf)
+    format("opentype");
+}
+
+@font-face {
+  font-family: jetexbold;
+  src: url(../../public/fonts/JetBrainsMono_Complete/JetBrainsMono_Complete/Fonts/OTF/JetBrainsMono-ExtraBold.otf)
+    format("opentype");
+}
+
+@font-face {
+  font-family: Striper;
+  src: url(../../public/fonts/Striper_Complete/Striper_Complete/Fonts/OTF/Striper-Regular.otf)
+    format("opentype");
+}
+
+html {
+  background: #fffff3;
+}
+
+body {
+  background: #fffff3;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 9999px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.thin-scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.thin-scrollbar-dark::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.thin-scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: 9999px;
+}
+.thin-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.45);
+}
