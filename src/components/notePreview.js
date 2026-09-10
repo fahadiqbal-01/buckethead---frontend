@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, easeOut, easeInOut } from "framer-motion";
 import { LuX, LuDownload, LuTrash2 } from "react-icons/lu";
 import { FiPlus } from "react-icons/fi";
 
@@ -155,8 +155,9 @@ export default function NotePreview({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: easeOut }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity"
+            className="fixed inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity"
             aria-hidden="true"
           />
 
@@ -165,13 +166,13 @@ export default function NotePreview({
             initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="relative z-10 w-full max-w-135 bg-white rounded-[36px] p-6 md:p-4 shadow-2xl flex flex-col gap-4 select-none overflow-hidden"
+            transition={{ duration: 0.3, ease: easeOut }}
+            className="relative z-10 w-full max-w-240 bg-white rounded-[36px] p-6 md:p-4 shadow-2xl flex flex-col gap-4 select-none overflow-hidden"
           >
             {/* Inner Note Content Box */}
             <div
               style={{ backgroundColor: currentColorHex }}
-              className={`w-full rounded-[28px] p-7 md:p-8 flex flex-col justify-between min-h-125 transition-colors duration-300 relative ${
+              className={`w-full rounded-[28px] p-7 md:p-8 flex flex-col justify-between min-h-140 transition-colors duration-300 relative ${
                 isDark ? "text-white" : "text-black"
               }`}
             >
@@ -243,7 +244,7 @@ export default function NotePreview({
 
                 {/* Note Content Text */}
                 <div
-                  className={`mt-2 text-[15px] font-normal font-jetreg leading-relaxed whitespace-pre-wrap break-words max-h-56 overflow-y-auto pr-2 ${
+                  className={`mt-2 text-[15px] font-normal font-jetreg leading-relaxed whitespace-pre-wrap break-words max-h-70 overflow-y-auto pr-2 ${
                     isDark
                       ? "text-white/90 thin-scrollbar-dark"
                       : "text-black/90 thin-scrollbar"
