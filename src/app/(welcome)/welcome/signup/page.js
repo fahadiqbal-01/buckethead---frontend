@@ -14,8 +14,7 @@ export default function SignUP() {
 
   const [tooglePass, setTooglePass] = useState(false);
   const router = useRouter();
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "https://bucketheadbackend.vercel.app";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
   // REGISTER
   async function register(name, email, password) {
@@ -115,12 +114,7 @@ export default function SignUP() {
 
   return (
     <section className="flex justify-center items-center min-h-screen select-none overflow-hidden relative">
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: easeInOut }}
-        className="w-fit bg-mud flex justify-center items-center gap-4 px-3 py-4 rounded-md overflow-hidden shadow-2xl z-50 relative"
-      >
+      <div className="w-fit bg-mud flex justify-center items-center gap-4 px-3 py-4 rounded-md overflow-hidden shadow-2xl z-50 relative">
         <div className="flex justify-center items-center gap-4">
           <div className="flex flex-col justify-between items-center py-6 px-8 min-w-90">
             {/* SIGNUP */}
@@ -189,9 +183,10 @@ export default function SignUP() {
 
               <button
                 type="submit"
-                className="text-[15px] text-black font-jetreg px-2 py-2 bg-white cursor-pointer rounded-sm w-80 hover:bg-orange duration-300 ease-out font-medium mt-4"
+                disabled={signUp}
+                className="text-[15px] text-black font-jetreg px-2 py-2 bg-white cursor-pointer rounded-sm w-80 hover:bg-orange duration-300 ease-out font-medium mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {signUp ? "Creating" : "Create Account"}
+                {signUp ? "Creating..." : "Create Account"}
               </button>
             </form>
             {/* SIGNUP */}
@@ -215,7 +210,7 @@ export default function SignUP() {
           src="/gifs/bloub.gif"
           className=" w-20 absolute right-4 top-4 invert-100 "
         />
-      </motion.div>
+      </div>
       <ToastContainer
         position="bottom-right"
         limit={2}
@@ -233,7 +228,7 @@ export default function SignUP() {
       />
       <img
         src="/images/yooo.svg"
-        className=" fixed left-0 top-0 h-fit w-fit "
+        className=" absolute left-0 top-0 h-fit w-fit "
       />
       <h1 className=" text-xl text-mud tracking-wider font-jetexbold absolute bottom-4 left-[50%] translate-x-[-50%] select-none cursor-pointer ">
         "BucketHead"

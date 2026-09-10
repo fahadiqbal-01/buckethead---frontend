@@ -211,26 +211,6 @@ const ImageTabForm = ({ onSubmit }) => {
 
   async function PhotoPost(file, name, note) {
     const imageUrl = await uploadToCloudinary(file);
-    const getCookie = (cname) => {
-      if (typeof document === "undefined") return null;
-      const match = document.cookie.match(
-        new RegExp("(^| )" + cname + "=([^;]+)"),
-      );
-      return match ? match[2] : null;
-    };
-
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("access_token") || getCookie("access_token")
-        : null;
-
-    const headers = {
-      "Content-Type": "application/json",
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
 
     const response = await authFetch(`${API_URL}/photoupload`, {
       method: "POST",
@@ -595,27 +575,6 @@ const NoteTabForm = ({ onSubmit }) => {
   const [errors, setErrors] = useState({});
 
   async function NotePost(noteColor, noteTitle, noteContent) {
-    const getCookie = (cname) => {
-      if (typeof document === "undefined") return null;
-      const match = document.cookie.match(
-        new RegExp("(^| )" + cname + "=([^;]+)"),
-      );
-      return match ? match[2] : null;
-    };
-
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("access_token") || getCookie("access_token")
-        : null;
-
-    const headers = {
-      "Content-Type": "application/json",
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
     const response = await authFetch(`${API_URL}/noteupload`, {
       method: "POST",
       headers: {
@@ -654,8 +613,6 @@ const NoteTabForm = ({ onSubmit }) => {
 
     if (!content.trim()) {
       newErrors.content = "Note content is required";
-    } else if (content.length > 300) {
-      newErrors.content = "Note cannot exceed 300 characters";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -711,7 +668,6 @@ const NoteTabForm = ({ onSubmit }) => {
           />
           <FormTextarea
             placeholder="Note *"
-            maxLength={300}
             value={content}
             error={errors.content}
             onChange={(e) => {
@@ -740,11 +696,42 @@ const SpaceTabForm = ({ onSubmit }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  async function SpacePost(folderName, folderColorHex) {
+    const response = await authFetch(`${API_URL}/createspace`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        folder_name: folderName,
+        folder_color: folderColorHex,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.error) {
+      throw new Error(
+        data.detail ||
+          data.details ||
+          data.error ||
+          `Failed to create space (${response.status})`,
+      );
+    }
+
+    return data;
+  }
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim()) {
+    const cleanName = name.trim();
+    if (!cleanName) {
       setErrors({ name: "Space name is required" });
+      return;
+    }
+    if (cleanName.length > 15) {
+      setErrors({ name: "Space name cannot exceed 15 characters" });
       return;
     }
 
@@ -752,8 +739,21 @@ const SpaceTabForm = ({ onSubmit }) => {
     setLoading(true);
 
     try {
-      await new Promise((res) => setTimeout(res, 1000));
-      onSubmit({ type: "space", name, color });
+      await new Promise((res) => setTimeout(res, 600));
+      const selectedColorObj = COLOR_PALETTE.find((c) => c.id === color);
+      const colorHex = selectedColorObj ? selectedColorObj.hex : "#fffff3";
+
+      const createdData = await SpacePost(cleanName, colorHex);
+      onSubmit({
+        type: "space",
+        folder_name: cleanName,
+        folder_color: colorHex,
+        post_ids: [],
+        ...(typeof createdData === "object" ? createdData : {}),
+      });
+    } catch (err) {
+      console.error("Space creation failed:", err);
+      setErrors({ name: err.message || "Failed to create space" });
     } finally {
       setLoading(false);
     }
@@ -768,6 +768,7 @@ const SpaceTabForm = ({ onSubmit }) => {
         <FormInput
           type="text"
           placeholder="Space name *"
+          maxLength={15}
           value={name}
           error={errors.name}
           onChange={(e) => {
@@ -790,8 +791,19 @@ const TABS = [
 ];
 
 // main
-export default function AddItemModal({ isOpen, onClose, onAddItem }) {
-  const [activeTab, setActiveTab] = useState(0);
+export default function AddItemModal({
+  isOpen,
+  onClose,
+  onAddItem,
+  initialTab = 0,
+}) {
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   const handleClose = useCallback(() => {
     setActiveTab(0);
@@ -819,6 +831,11 @@ export default function AddItemModal({ isOpen, onClose, onAddItem }) {
     onAddItem?.(itemData);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("item-added", { detail: itemData }));
+      if (itemData?.type === "space") {
+        window.dispatchEvent(
+          new CustomEvent("space-created", { detail: itemData }),
+        );
+      }
     }
     handleClose();
   };

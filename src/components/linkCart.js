@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { LuUnlink } from "react-icons/lu";
+import { FiPlus } from "react-icons/fi";
 import { motion } from "framer-motion";
 
 const shortenText = (str, maxLength = 16) => {
@@ -18,6 +19,7 @@ export default function LinkCart({
   size = "medium",
   className = "",
   onClick,
+  onAddClick,
 }) {
   const isSmall = size === "small";
   const isExplicitSize =
@@ -65,6 +67,19 @@ export default function LinkCart({
       style={Object.keys(customStyle).length > 0 ? customStyle : undefined}
       className={`w-full bg-black rounded-md overflow-hidden cursor-zoom-in group relative flex flex-col transition-all duration-300 ease-out ${tailwindHeightClass} ${tailwindAspectClass} ${className}`}
     >
+      {onAddClick && (
+        <button
+          type="button"
+          aria-label="Add to space"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddClick(e);
+          }}
+          className="absolute top-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-mud shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
+        >
+          <FiPlus className="text-sm stroke-[2.5]" />
+        </button>
+      )}
       <img
         src={src || "/images/t.jpg"}
         alt={text || "Link preview"}
@@ -76,6 +91,7 @@ export default function LinkCart({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
         className="w-full flex justify-center items-center cursor-pointer"
       >
         <p

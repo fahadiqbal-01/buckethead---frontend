@@ -12,7 +12,7 @@ function parseJwtExp(token) {
       atob(base64)
         .split("")
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .join(""),
     );
     const parsed = JSON.parse(jsonPayload);
     return parsed.exp ? parsed.exp * 1000 : null;
@@ -27,17 +27,21 @@ export function useSilentRefresh() {
   const performRefresh = useCallback(async () => {
     const newToken = await silentRefreshToken();
     if (newToken) {
-      scheduleRefresh(typeof newToken === "string" ? newToken : getAuthToken());
+      const activeToken =
+        typeof newToken === "string" ? newToken : getAuthToken();
+      schedule(activeToken);
     }
   }, []);
 
-  const scheduleRefresh = useCallback(
+  const schedule = useCallback(
     (token) => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
 
       const activeToken = token || getAuthToken();
+      if (!activeToken) return;
+
       const expTime = parseJwtExp(activeToken);
 
       let delay = 55 * 60 * 1000; // Default 55 min fallback
@@ -53,17 +57,16 @@ export function useSilentRefresh() {
         }
       }
 
-      console.log(`[SilentRefresh] Next refresh scheduled in ${Math.round(delay / 1000)}s`);
-      timerRef.current = setTimeout(async () => {
-        await performRefresh();
+      timerRef.current = setTimeout(() => {
+        performRefresh();
       }, delay);
     },
-    [performRefresh]
+    [performRefresh],
   );
 
   useEffect(() => {
     // Schedule based on current token exp
-    scheduleRefresh();
+    schedule();
 
     // On tab visibility change or focus
     const handleFocus = () => {
@@ -86,7 +89,7 @@ export function useSilentRefresh() {
       document.removeEventListener("visibilitychange", handleFocus);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [scheduleRefresh, performRefresh]);
+  }, [schedule, performRefresh]);
 
   return { performRefresh };
 }

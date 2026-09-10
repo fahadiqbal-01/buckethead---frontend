@@ -16,8 +16,7 @@ export default function Welcome() {
   // router
   let router = useRouter();
 
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "https://bucketheadbackend.vercel.app";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
   // LOGIN
   async function Validate(email, password) {
@@ -50,6 +49,9 @@ export default function Welcome() {
 
     try {
       await Validate(signInEmail, signInPassword);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("buckethead_posts_cache");
+      }
       setTimeout(() => {
         setSignInEmail("");
         setSignInPassword("");
@@ -90,12 +92,7 @@ export default function Welcome() {
 
   return (
     <section className="flex justify-center items-center min-h-screen select-none overflow-hidden relative">
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: easeInOut }}
-        className="w-fit bg-mud flex justify-center items-center gap-4 px-3 py-4 rounded-md overflow-hidden shadow-2xl z-50 relative"
-      >
+      <div className="w-fit bg-mud flex justify-center items-center gap-4 px-3 py-4 rounded-md overflow-hidden shadow-2xl z-50 relative">
         <div className="flex justify-center items-center gap-4">
           <div className="flex flex-col justify-between items-center py-6 px-8 min-w-90">
             {/* SIGNIN */}
@@ -149,9 +146,10 @@ export default function Welcome() {
 
               <button
                 type="submit"
-                className="text-[15px] text-black font-jetreg px-2 py-2 bg-white cursor-pointer rounded-sm w-80 hover:bg-yellow duration-300 ease-out font-medium mt-4"
+                disabled={signIn}
+                className="text-[15px] text-black font-jetreg px-2 py-2 bg-white cursor-pointer rounded-sm w-80 hover:bg-yellow duration-300 ease-out font-medium mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {signIn ? "Logging In" : "LogIn"}
+                {signIn ? "Logging In..." : "LogIn"}
               </button>
             </form>
             {/* SIGNIN */}
@@ -176,7 +174,7 @@ export default function Welcome() {
           src="/gifs/bloub.gif"
           className=" w-20 absolute right-4 top-4 invert-100 "
         />
-      </motion.div>
+      </div>
       <ToastContainer
         position="bottom-right"
         limit={2}

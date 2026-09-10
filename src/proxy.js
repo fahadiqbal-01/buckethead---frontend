@@ -35,13 +35,6 @@ export default proxy;
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - static assets (.svg, .png, .jpg, .jpeg, .gif, .webp, favicon.ico)
-     */
     "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

@@ -2,14 +2,15 @@
 import Container from "@/components/container";
 import AddItemModal from "@/components/AddItemModal";
 import InputFiltering from "@/components/inputfiltering";
-import { AnimatePresence, easeOut, motion } from "motion/react";
+import { AnimatePresence, easeOut, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
-import { BsGrid3X2 } from "react-icons/bs";
 import { FaPlus } from "react-icons/fa6";
 import { useSilentRefresh } from "@/hooks/useSilentRefresh";
 import { GridProvider, useGrid } from "@/context/GridContext";
+import { FilterProvider, useFilter } from "@/context/FilterContext";
+import { authFetch } from "@/utils/authFetch";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,16 +40,71 @@ function DashboardLayoutContent({ children }) {
   useSilentRefresh();
 
   const { gridSize, setGridSize } = useGrid();
+  const { openFilter, setOpenFilter } = useFilter();
   const drawerRef = useRef(null);
   const buttonRef = useRef(null);
   const filterRef = useRef(null);
   const inputRef = useRef(null);
 
   const [openDrawer, setOpenDrawer] = useState(false);
-  const [openFilter, setOpenFilter] = useState(false);
   const [openAddModal, setOpenAddModal] = useState(false);
+  const [addModalTab, setAddModalTab] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState(null);
 
   const router = useRouter();
+
+  useEffect(() => {
+    const handleOpenSpaceModal = () => {
+      setAddModalTab(3);
+      setOpenAddModal(true);
+    };
+
+    window.addEventListener("open-create-space", handleOpenSpaceModal);
+    return () =>
+      window.removeEventListener("open-create-space", handleOpenSpaceModal);
+  }, []);
+
+  useEffect(() => {
+    const updateAvatarFromStorage = () => {
+      if (typeof window !== "undefined") {
+        const cached = localStorage.getItem("user_avatar");
+        setAvatarUrl(cached || null);
+      }
+    };
+
+    updateAvatarFromStorage();
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+    let isMounted = true;
+
+    async function fetchUserAvatar() {
+      try {
+        const res = await authFetch(`${API_URL}/getuser`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data?.image_url) {
+            setAvatarUrl(data.image_url);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("user_avatar", data.image_url);
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback to cached or cat.gif on error
+      }
+    }
+
+    fetchUserAvatar();
+
+    window.addEventListener("avatarUpdated", updateAvatarFromStorage);
+    window.addEventListener("storage", updateAvatarFromStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("avatarUpdated", updateAvatarFromStorage);
+      window.removeEventListener("storage", updateAvatarFromStorage);
+    };
+  }, []);
 
   const handleOpenDrawer = () => {
     setOpenDrawer((prev) => !prev);
@@ -80,11 +136,7 @@ function DashboardLayoutContent({ children }) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [openDrawer, openFilter]);
-
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedFilter, setSelectedFilter] = useState("All");
-  const [selectedSort, setSelectedSort] = useState("Last edited");
+  }, [openDrawer, openFilter, setOpenFilter]);
 
   const handleSettings = (event) => {
     event?.stopPropagation();
@@ -93,11 +145,13 @@ function DashboardLayoutContent({ children }) {
       router.push("/settings");
     }, 600);
   };
+
   const handleSmallGrid = (event) => {
     event?.stopPropagation();
     setGridSize("small");
     setOpenDrawer(false);
   };
+
   const HandleMediumGrid = (event) => {
     event?.stopPropagation();
     setGridSize("medium");
@@ -117,19 +171,15 @@ function DashboardLayoutContent({ children }) {
           <InputFiltering
             inputRef={inputRef}
             filterRef={filterRef}
-            openFilter={openFilter}
-            setOpenFilter={setOpenFilter}
             setOpenDrawer={setOpenDrawer}
-            selectedColor={selectedColor}
-            setSelectedColor={setSelectedColor}
-            selectedFilter={selectedFilter}
-            setSelectedFilter={setSelectedFilter}
-            selectedSort={selectedSort}
-            setSelectedSort={setSelectedSort}
           />
+
           <div className=" flex flex-row justify-center items-center gap-4 absolute top-0 right-0 duration-300 ease-out">
             <button
-              onClick={() => setOpenAddModal(true)}
+              onClick={() => {
+                setAddModalTab(0);
+                setOpenAddModal(true);
+              }}
               className=" bg-mud p-3 rounded-full cursor-pointer select-none absolute -left-16 top-0"
             >
               <FaPlus className=" text-2xl text-white " />
@@ -156,8 +206,9 @@ function DashboardLayoutContent({ children }) {
                     className="absolute right-0 top-0 w-fit h-fit flex items-center justify-center cursor-pointer p-0 bg-transparent border-0 "
                   >
                     <img
-                      src="/icons/cat.gif"
-                      alt="Cat animation"
+                      src={avatarUrl || "/icons/cat.gif"}
+                      alt="User avatar"
+                      onError={() => setAvatarUrl(null)}
                       className="w-12 h-12 rounded-full bg-white object-cover"
                     />
                   </motion.button>
@@ -172,18 +223,25 @@ function DashboardLayoutContent({ children }) {
                     className="w-36.5 py-1 whitespace-nowrap overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex flex-col justify-start items-start gap-2">
+                    <div className="flex flex-col justify-start items-start gap-1">
                       <motion.div
                         onClick={handleSmallGrid}
                         variants={itemVariants}
-                        className={`w-full p-2 flex justify-start items-start rounded-xl ${
+                        className={`group w-full p-2 flex justify-start items-center rounded-xl cursor-pointer transition-colors duration-200 ease-out ${
                           gridSize === "small"
-                            ? "bg-white/25"
-                            : "hover:bg-white/20"
-                        } duration-200 ease-out cursor-pointer`}
+                            ? "text-white font-medium"
+                            : "text-white/50 hover:text-white"
+                        }`}
                       >
-                        <div className="text-[14px] text-white font-jetreg flex flex-row justify-center items-center gap-2">
-                          <img src="/icons/smallgrid.svg" className=" w-5 " />
+                        <div className="text-[14px] font-jetreg flex flex-row justify-center items-center gap-2">
+                          <img
+                            src="/icons/smallgrid.svg"
+                            className={`w-5 transition-opacity duration-200 ease-out ${
+                              gridSize === "small"
+                                ? "opacity-100"
+                                : "opacity-50 group-hover:opacity-100"
+                            }`}
+                          />
                           Small Grid
                         </div>
                       </motion.div>
@@ -191,22 +249,34 @@ function DashboardLayoutContent({ children }) {
                       <motion.div
                         variants={itemVariants}
                         onClick={HandleMediumGrid}
-                        className={`w-full text-[14px] text-white font-jetreg flex flex-row justify-start items-center gap-2 p-2 rounded-xl ${
+                        className={`group w-full p-2 flex justify-start items-center rounded-xl cursor-pointer transition-colors duration-200 ease-out ${
                           gridSize === "medium"
-                            ? "bg-white/25"
-                            : "hover:bg-white/20"
-                        } duration-200 ease-out cursor-pointer`}
+                            ? "text-white font-medium"
+                            : "text-white/50 hover:text-white"
+                        }`}
                       >
-                        <img src="/images/biggrid.svg" className=" w-5 " />
-                        Medium Grid
+                        <div className="text-[14px] font-jetreg flex flex-row justify-start items-center gap-2">
+                          <img
+                            src="/images/biggrid.svg"
+                            className={`w-5 transition-opacity duration-200 ease-out ${
+                              gridSize === "medium"
+                                ? "opacity-100"
+                                : "opacity-50 group-hover:opacity-100"
+                            }`}
+                          />
+                          Medium Grid
+                        </div>
                       </motion.div>
                     </div>
                     <motion.div
                       variants={itemVariants}
                       onClick={handleSettings}
-                      className="text-[14px] text-white font-jetreg flex flex-row justify-start items-center gap-2 mt-4 p-2 rounded-xl hover:bg-white/20 duration-200 ease-out cursor-pointer"
+                      className="group text-[14px] text-white/50 hover:text-white font-jetreg flex flex-row justify-start items-center gap-2 mt-3 p-2 rounded-xl transition-colors duration-200 ease-out cursor-pointer"
                     >
-                      <img src="/icons/settings.svg" className=" w-5 " />
+                      <img
+                        src="/icons/settings.svg"
+                        className="w-5 opacity-50 group-hover:opacity-100 transition-opacity duration-200 ease-out"
+                      />
                       Settings
                     </motion.div>
                   </motion.div>
@@ -220,7 +290,11 @@ function DashboardLayoutContent({ children }) {
       {/* Add Item Modal Section */}
       <AddItemModal
         isOpen={openAddModal}
-        onClose={() => setOpenAddModal(false)}
+        initialTab={addModalTab}
+        onClose={() => {
+          setOpenAddModal(false);
+          setAddModalTab(0);
+        }}
       />
 
       <div>{children}</div>
@@ -231,7 +305,9 @@ function DashboardLayoutContent({ children }) {
 export default function DashboardLayout({ children }) {
   return (
     <GridProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <FilterProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </FilterProvider>
     </GridProvider>
   );
 }

@@ -1,30 +1,56 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Container from "@/components/container";
 import ImageCart from "@/components/imageCart";
 import LinkCart from "@/components/linkCart";
 import NoteCart from "@/components/noteCart";
-import NotePreview from "@/components/notePreview";
 import ImagePreview from "@/components/imagePreview";
 import LinkPreview from "@/components/linkPreview";
+import NotePreview from "@/components/notePreview";
 import Spaces from "@/components/spaces";
-import { motion } from "framer-motion";
+import SpaceMenuPopover from "@/components/SpaceMenuPopover";
+import DeleteSpaceModal from "@/components/DeleteSpaceModal";
 import { authFetch } from "@/utils/authFetch";
+import { useFilter } from "@/context/FilterContext";
 import { useGrid } from "@/context/GridContext";
 
 export default function DashboardPage() {
   const { gridSize } = useGrid();
   const isSmall = gridSize === "small";
+
+  const { searchQuery, selectedColor, selectedFilter } = useFilter();
+
+  const CACHE_KEY = "buckethead_posts_cache";
+  const SPACES_CACHE_KEY = "buckethead_spaces_cache";
+
   const [items, setItems] = useState([]);
+  const [spaces, setSpaces] = useState([]);
+  const [selectedSpace, setSelectedSpace] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedNote, setSelectedNote] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedLink, setSelectedLink] = useState(null);
+  const [selectedPreviewItem, setSelectedPreviewItem] = useState(null);
+  const [spacePopover, setSpacePopover] = useState({
+    isOpen: false,
+    item: null,
+    targetRect: null,
+  });
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    spaceName: "",
+    loading: false,
+  });
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
   const loadAllData = async () => {
-    setLoading(true);
+    // Only show full loading spinner if there is no cached data already visible
+    if (
+      items.length === 0 &&
+      typeof window !== "undefined" &&
+      !localStorage.getItem(CACHE_KEY)
+    ) {
+      setLoading(true);
+    }
+
     try {
       const response = await authFetch(`${API_URL}/getallposts`, {
         method: "GET",
@@ -32,7 +58,15 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setItems(Array.isArray(data) ? data : []);
+        const freshItems = Array.isArray(data) ? data : [];
+        setItems(freshItems);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(freshItems));
+          } catch (e) {
+            console.warn("Failed to cache posts in localStorage", e);
+          }
+        }
       } else if (response.status === 401) {
         console.warn("Session expired or unauthorized (401).");
       }
@@ -43,32 +77,64 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeletePost = async (id, postType) => {
-    if (!id) return;
+  const loadSpaces = async () => {
     try {
-      // Optimistic delete from UI
-      setItems((prev) => prev.filter((it) => it.id !== id && it._id !== id));
-      setSelectedNote(null);
-      setSelectedImage(null);
-      setSelectedLink(null);
-
-      // Secure authenticated DELETE request
-      const res = await authFetch(`${API_URL}/deletepost/${postType}/${id}`, {
-        method: "DELETE",
+      const response = await authFetch(`${API_URL}/getspaces`, {
+        method: "GET",
       });
 
-      if (!res.ok) {
-        console.error("Delete request failed:", res.status);
-        loadAllData();
+      if (response.ok) {
+        const data = await response.json();
+        const freshSpaces = Array.isArray(data) ? data : [];
+        setSpaces(freshSpaces);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(SPACES_CACHE_KEY, JSON.stringify(freshSpaces));
+          } catch (e) {
+            console.warn("Failed to cache spaces in localStorage", e);
+          }
+        }
       }
     } catch (err) {
-      console.error("Error deleting post:", err);
-      loadAllData();
+      console.error("Error loading spaces:", err);
     }
   };
 
   useEffect(() => {
+    // 1. Immediately hydrate from cache on refresh with 0ms delay
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setItems(parsed);
+            setLoading(false);
+          }
+        }
+
+        const cachedSpaces = localStorage.getItem(SPACES_CACHE_KEY);
+        if (cachedSpaces) {
+          const parsedSpaces = JSON.parse(cachedSpaces);
+          if (Array.isArray(parsedSpaces)) {
+            setSpaces(parsedSpaces);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load cached posts/spaces:", err);
+      }
+    }
+
+    // 2. Fetch fresh data in the background (stale-while-revalidate)
     loadAllData();
+    loadSpaces();
+
+    const handleSpaceAdded = () => {
+      loadSpaces();
+    };
+
+    window.addEventListener("space-created", handleSpaceAdded);
+    window.addEventListener("space-added", handleSpaceAdded);
 
     const handleItemAdded = (event) => {
       const newItem = event?.detail;
@@ -120,241 +186,546 @@ export default function DashboardPage() {
       }
 
       if (optimisticItem) {
-        setItems((prev) => [
-          optimisticItem,
-          ...prev.filter((it) => it.id !== optimisticItem.id),
-        ]);
+        setItems((prev) => {
+          const updated = [
+            optimisticItem,
+            ...prev.filter((it) => it.id !== optimisticItem.id),
+          ];
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+            } catch (e) {}
+          }
+          return updated;
+        });
       }
     };
 
     window.addEventListener("item-added", handleItemAdded);
-    return () => window.removeEventListener("item-added", handleItemAdded);
+    return () => {
+      window.removeEventListener("item-added", handleItemAdded);
+      window.removeEventListener("space-created", handleSpaceAdded);
+      window.removeEventListener("space-added", handleSpaceAdded);
+    };
   }, []);
 
-  const imageItems = items.filter(
-    (it) => it.post_type === "image" || it.itemType === "image",
-  );
-  const linkItems = items.filter(
-    (it) => it.post_type === "link" || it.itemType === "link",
-  );
-  const noteItems = items.filter(
-    (it) => it.post_type === "note" || it.itemType === "note",
-  );
+  // Filter and Sort items dynamically
+  const filteredAndSortedItems = useMemo(() => {
+    const isFiltering =
+      (searchQuery && searchQuery.trim() !== "") ||
+      (selectedFilter && selectedFilter !== "All") ||
+      Boolean(selectedColor);
+
+    let result = [...items];
+
+    // If no global filter is active and a space is selected, filter items by space
+    if (!isFiltering && selectedSpace) {
+      const activeSpaceObj = spaces.find(
+        (s) => s.folder_name === selectedSpace,
+      );
+      const spaceItemIds = new Set(activeSpaceObj?.post_ids || []);
+      result = result.filter((item) => spaceItemIds.has(String(item.id)));
+    }
+
+    // 1. Search Query Filter (filters across all user items when filtering)
+    if (searchQuery && searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((item) => {
+        const title = (
+          item.node_title ||
+          item.title ||
+          item.image_name ||
+          item.name ||
+          item.link_name ||
+          ""
+        ).toLowerCase();
+        const desc = (
+          item.note_text ||
+          item.content ||
+          item.image_note ||
+          item.note ||
+          item.link_desc ||
+          item.description ||
+          ""
+        ).toLowerCase();
+        const url = (item.link_url || item.url || "").toLowerCase();
+        return title.includes(q) || desc.includes(q) || url.includes(q);
+      });
+    }
+
+    // 2. Type Filter (All, Links, Images, Notes)
+    if (selectedFilter && selectedFilter !== "All") {
+      if (selectedFilter === "Links") {
+        result = result.filter(
+          (it) => it.post_type === "link" || it.itemType === "link",
+        );
+      } else if (selectedFilter === "Images") {
+        result = result.filter(
+          (it) => it.post_type === "image" || it.itemType === "image",
+        );
+      } else if (selectedFilter === "Notes") {
+        result = result.filter(
+          (it) => it.post_type === "note" || it.itemType === "note",
+        );
+      }
+    }
+
+    // 3. Color Filter
+    if (selectedColor) {
+      const targetColor = selectedColor.toLowerCase();
+      result = result.filter((item) => {
+        if (item.color) {
+          return item.color.toLowerCase() === targetColor;
+        }
+        return false;
+      });
+    }
+
+    // 4. Sort (Last edited / Date created)
+    result.sort((a, b) => {
+      const timeA = new Date(
+        a.created_at || a.createdAt || a.id || 0,
+      ).getTime();
+      const timeB = new Date(
+        b.created_at || b.createdAt || b.id || 0,
+      ).getTime();
+
+      if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+        return timeB - timeA; // newest first
+      }
+
+      const idA = String(a.id || "");
+      const idB = String(b.id || "");
+      return idB.localeCompare(idA, undefined, { numeric: true });
+    });
+
+    return result;
+  }, [
+    items,
+    searchQuery,
+    selectedFilter,
+    selectedColor,
+    selectedSpace,
+    spaces,
+  ]);
+
+  // Active Index & Navigation for Preview
+  const activeIndex = useMemo(() => {
+    if (!selectedPreviewItem) return -1;
+    return filteredAndSortedItems.findIndex((it) =>
+      it.id && selectedPreviewItem.id
+        ? it.id === selectedPreviewItem.id
+        : it === selectedPreviewItem,
+    );
+  }, [selectedPreviewItem, filteredAndSortedItems]);
+
+  const hasPrev = activeIndex > 0;
+  const hasNext =
+    activeIndex >= 0 && activeIndex < filteredAndSortedItems.length - 1;
+
+  const handlePrev = () => {
+    if (hasPrev) {
+      setSelectedPreviewItem(filteredAndSortedItems[activeIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasNext) {
+      setSelectedPreviewItem(filteredAndSortedItems[activeIndex + 1]);
+    }
+  };
+
+  const handleDeleteItem = async (itemOrId, explicitType) => {
+    let itemId =
+      typeof itemOrId === "object" && itemOrId !== null
+        ? itemOrId.id
+        : itemOrId;
+    let postType =
+      explicitType ||
+      (typeof itemOrId === "object" && itemOrId !== null
+        ? itemOrId.post_type || itemOrId.itemType || itemOrId.type
+        : null);
+
+    if (!postType && selectedPreviewItem) {
+      postType =
+        selectedPreviewItem.post_type ||
+        selectedPreviewItem.itemType ||
+        selectedPreviewItem.type;
+    }
+
+    if (!postType) {
+      const found = items.find((it) => String(it.id) === String(itemId));
+      postType = found?.post_type || found?.itemType || found?.type;
+    }
+
+    if (!postType) {
+      postType = "note";
+    }
+
+    postType = String(postType).toLowerCase();
+
+    // Smooth delay so the preview modal's delete spinner is clearly visible
+    await new Promise((res) => setTimeout(res, 450));
+
+    // Close preview modal
+    setSelectedPreviewItem(null);
+
+    // Optimistically update local state & cache
+    setItems((prev) => {
+      const updated = prev.filter((it) => String(it.id) !== String(itemId));
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+        } catch (e) {
+          console.warn("Failed to update cache after delete", e);
+        }
+      }
+      return updated;
+    });
+
+    try {
+      const response = await authFetch(
+        `${API_URL}/deletepost/${postType}/${itemId}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!response.ok) {
+        console.error(
+          "Failed to delete post on backend:",
+          response.status,
+          await response.text(),
+        );
+      }
+    } catch (err) {
+      console.error("Network error deleting post:", err);
+    }
+  };
+
+  const handleColorChange = async (noteId, newColor) => {
+    // Artificial smooth delay to provide loading feedback and rate limit rapid color switching
+    await new Promise((res) => setTimeout(res, 350));
+
+    setItems((prev) => {
+      const updated = prev.map((it) => {
+        if (it.id === noteId) {
+          return { ...it, color: newColor };
+        }
+        return it;
+      });
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(updated));
+        } catch (e) {
+          console.warn("Failed to update cache after color change", e);
+        }
+      }
+      return updated;
+    });
+
+    if (selectedPreviewItem && selectedPreviewItem.id === noteId) {
+      setSelectedPreviewItem((prev) => ({ ...prev, color: newColor }));
+    }
+
+    try {
+      const res = await authFetch(`${API_URL}/updatenotecolor/${noteId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ color: newColor }),
+      });
+      if (!res.ok) {
+        console.error("Failed to update note color on server:", res.status);
+      }
+    } catch (err) {
+      console.error("Network error updating note color:", err);
+    }
+  };
+
+  const handleOpenSpacePopover = (e, item) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setSpacePopover({
+      isOpen: true,
+      item,
+      targetRect: rect,
+    });
+  };
+
+  const handleToggleSpaceItem = async (folderName, itemId) => {
+    const strItemId = String(itemId);
+    const targetSpace = spaces.find((s) => s.folder_name === folderName);
+    const isAssigned = Boolean(targetSpace?.post_ids?.includes(strItemId));
+
+    // Small delay to show smooth loading feedback and rate limit rapid toggles
+    await new Promise((res) => setTimeout(res, 400));
+
+    // Optimistically update space post_ids
+    setSpaces((prev) => {
+      const updated = prev.map((s) => {
+        if (s.folder_name === folderName) {
+          const existing = s.post_ids || [];
+          const nextIds = isAssigned
+            ? existing.filter((id) => String(id) !== strItemId)
+            : [...existing, strItemId];
+          return { ...s, post_ids: nextIds };
+        }
+        return s;
+      });
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(SPACES_CACHE_KEY, JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return updated;
+    });
+
+    try {
+      const endpoint = isAssigned ? "/removefromspace" : "/addtospace";
+      const res = await authFetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder_name: folderName, post_id: strItemId }),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to toggle space item on backend:", res.status);
+        loadSpaces();
+      }
+    } catch (err) {
+      console.error("Network error toggling space item:", err);
+      loadSpaces();
+    }
+  };
+
+  const handleOpenCreateSpace = () => {
+    setSpacePopover({ isOpen: false, item: null, targetRect: null });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("open-create-space"));
+    }
+  };
+
+  const handleRequestDeleteSpace = (folderName) => {
+    if (!folderName) return;
+    setDeleteModal({
+      isOpen: true,
+      spaceName: folderName,
+      loading: false,
+    });
+  };
+
+  const handleConfirmDeleteSpace = async () => {
+    const folderName = deleteModal.spaceName;
+    if (!folderName) return;
+
+    setDeleteModal((prev) => ({ ...prev, loading: true }));
+
+    // Small delay so loading state and spinner are clearly shown
+    await new Promise((res) => setTimeout(res, 500));
+
+    // Optimistically remove space
+    setSpaces((prev) => {
+      const updated = prev.filter((s) => s.folder_name !== folderName);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(SPACES_CACHE_KEY, JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return updated;
+    });
+
+    if (selectedSpace === folderName) {
+      setSelectedSpace(null);
+    }
+
+    try {
+      const res = await authFetch(
+        `${API_URL}/deletespace/${encodeURIComponent(folderName)}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!res.ok) {
+        console.error("Failed to delete space on backend:", res.status);
+        loadSpaces();
+      }
+    } catch (err) {
+      console.error("Network error deleting space:", err);
+      loadSpaces();
+    } finally {
+      setDeleteModal({ isOpen: false, spaceName: "", loading: false });
+    }
+  };
 
   return (
-    <Container>
-      <Spaces spacetitle="My Design Templet" />
-
-      {!loading && (
-        <div
-          className={`py-6 select-none transition-all duration-300 ease-out [column-fill:_balance] ${
-            isSmall
-              ? "columns-2 sm:columns-3 md:columns-4 lg:columns-6 xl:columns-7 gap-4"
-              : "columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-6"
-          }`}
-        >
-          {items.map((item, index) => {
-            const key = item.id || `item-${index}`;
-
-            if (item.post_type === "image" || item.itemType === "image") {
-              return (
-                <div
-                  key={key}
-                  className={`break-inside-avoid w-full flex justify-center transition-all duration-300 ease-out ${
-                    isSmall ? "mb-4" : "mb-6"
-                  }`}
-                >
-                  <ImageCart
-                    src={
-                      item.image_url ||
-                      item.photo_url ||
-                      item.secure_url ||
-                      item.url
-                    }
-                    text={item.image_name || item.name || item.title || ""}
-                    size={gridSize}
-                    className="w-full cursor-pointer"
-                    onClick={() => setSelectedImage(item)}
-                  />
-                </div>
-              );
-            }
-
-            if (item.post_type === "link" || item.itemType === "link") {
-              return (
-                <div
-                  key={key}
-                  className={`break-inside-avoid w-full flex justify-center transition-all duration-300 ease-out ${
-                    isSmall ? "mb-4" : "mb-6"
-                  }`}
-                >
-                  <LinkCart
-                    src={item.image_url || "/images/bg.jpg"}
-                    text={item.link_name || item.title || ""}
-                    href={item.link_url || "#"}
-                    size={gridSize}
-                    className="w-full cursor-pointer"
-                    onClick={() => setSelectedLink(item)}
-                  />
-                </div>
-              );
-            }
-
-            if (item.post_type === "note" || item.itemType === "note") {
-              return (
-                <div
-                  key={key}
-                  className={`break-inside-avoid w-full flex justify-center transition-all duration-300 ease-out ${
-                    isSmall ? "mb-4" : "mb-6"
-                  }`}
-                >
-                  <NoteCart
-                    color={item.color || "white"}
-                    title={item.node_title || item.title || ""}
-                    content={item.note_text || item.content || ""}
-                    size={gridSize}
-                    className="w-full cursor-pointer"
-                    onClick={() => setSelectedNote(item)}
-                  />
-                </div>
-              );
-            }
-
-            return null;
-          })}
-
-          {/* Fallback demo card if empty */}
-          {items.length === 0 && (
-            <div
-              className={`break-inside-avoid w-full flex justify-center transition-all duration-300 ease-out ${
-                isSmall ? "mb-4" : "mb-6"
-              }`}
-            >
-              <NoteCart
-                color="bfdbfe"
-                title="Hello"
-                content="Create your first item!"
-                size={gridSize}
-                className="w-full"
-                onClick={() =>
-                  setSelectedNote({
-                    id: "demo",
-                    color: "blue",
-                    title: "Hello",
-                    content: "Create your first item!",
-                  })
-                }
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Note Preview Modal */}
-      <NotePreview
-        isOpen={!!selectedNote}
-        onClose={() => setSelectedNote(null)}
-        note={selectedNote}
-        onDelete={(id) => handleDeletePost(id, "note")}
-        hasPrev={
-          noteItems.findIndex(
-            (n) => (n.id || n._id) === (selectedNote?.id || selectedNote?._id),
-          ) > 0
-        }
-        hasNext={
-          noteItems.findIndex(
-            (n) => (n.id || n._id) === (selectedNote?.id || selectedNote?._id),
-          ) <
-          noteItems.length - 1
-        }
-        onPrev={() => {
-          const idx = noteItems.findIndex(
-            (n) => (n.id || n._id) === (selectedNote?.id || selectedNote?._id),
-          );
-          if (idx > 0) setSelectedNote(noteItems[idx - 1]);
-        }}
-        onNext={() => {
-          const idx = noteItems.findIndex(
-            (n) => (n.id || n._id) === (selectedNote?.id || selectedNote?._id),
-          );
-          if (idx >= 0 && idx < noteItems.length - 1)
-            setSelectedNote(noteItems[idx + 1]);
-        }}
-        onColorChange={(noteId, newColor) => {
-          setItems((prev) =>
-            prev.map((it) =>
-              it.id === noteId ? { ...it, color: newColor } : it,
-            ),
-          );
-        }}
+    <Container className=" min-h-screen ">
+      <Spaces
+        spaces={spaces}
+        selectedSpace={selectedSpace}
+        onSelectSpace={setSelectedSpace}
+        onCreateSpaceClick={handleOpenCreateSpace}
+        onDeleteSpace={handleRequestDeleteSpace}
       />
 
-      {/* Image Preview Modal */}
+      {!loading &&
+        (items.length === 0 ? (
+          <div className="w-full py-28 flex flex-col items-center justify-center text-center ">
+            <h2 className="text-[22px] md:text-4xl text-mud font-jetbold tracking-tight">
+              Welcome
+            </h2>
+          </div>
+        ) : filteredAndSortedItems.length === 0 ? (
+          <div className="w-full py-28 flex flex-col items-center justify-center text-center">
+            <p className="text-[16px] text-mud/60 font-jetreg tracking-wide">
+              No items found matching your filters.
+            </p>
+          </div>
+        ) : (
+          <div
+            className={`py-6 gap-6 [column-fill:_balance] select-none ${
+              isSmall
+                ? "columns-2 sm:columns-3 md:columns-4 lg:columns-6 xl:columns-7"
+                : "columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5"
+            }`}
+          >
+            {filteredAndSortedItems.map((item, index) => {
+              const key = item.id || `item-${index}`;
+
+              if (item.post_type === "image" || item.itemType === "image") {
+                return (
+                  <div
+                    key={key}
+                    className="break-inside-avoid mb-6 w-full flex justify-center"
+                  >
+                    <ImageCart
+                      src={
+                        item.image_url ||
+                        item.photo_url ||
+                        item.secure_url ||
+                        item.url
+                      }
+                      text={item.image_name || item.name || item.title || ""}
+                      className="w-full"
+                      onClick={() => setSelectedPreviewItem(item)}
+                      onAddClick={(e) => handleOpenSpacePopover(e, item)}
+                    />
+                  </div>
+                );
+              }
+
+              if (item.post_type === "link" || item.itemType === "link") {
+                return (
+                  <div
+                    key={key}
+                    className="break-inside-avoid mb-6 w-full flex justify-center"
+                  >
+                    <LinkCart
+                      src={item.image_url || "/images/bg.jpg"}
+                      text={item.link_name || item.title || ""}
+                      href={item.link_url || "#"}
+                      className="w-full"
+                      onClick={() => setSelectedPreviewItem(item)}
+                      onAddClick={(e) => handleOpenSpacePopover(e, item)}
+                    />
+                  </div>
+                );
+              }
+
+              if (item.post_type === "note" || item.itemType === "note") {
+                return (
+                  <div
+                    key={key}
+                    className="break-inside-avoid mb-6 w-full flex justify-center"
+                  >
+                    <NoteCart
+                      color={item.color || "white"}
+                      title={item.node_title || item.title || ""}
+                      content={item.note_text || item.content || ""}
+                      className="w-full"
+                      onClick={() => setSelectedPreviewItem(item)}
+                      onAddClick={(e) => handleOpenSpacePopover(e, item)}
+                    />
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </div>
+        ))}
+
+      {/* Preview Modals */}
       <ImagePreview
-        isOpen={!!selectedImage}
-        onClose={() => setSelectedImage(null)}
-        image={selectedImage}
-        onDelete={(id) => handleDeletePost(id, "image")}
-        hasPrev={
-          imageItems.findIndex(
-            (img) =>
-              (img.id || img._id) === (selectedImage?.id || selectedImage?._id),
-          ) > 0
+        isOpen={
+          Boolean(selectedPreviewItem) &&
+          (selectedPreviewItem?.post_type === "image" ||
+            selectedPreviewItem?.itemType === "image")
         }
-        hasNext={
-          imageItems.findIndex(
-            (img) =>
-              (img.id || img._id) === (selectedImage?.id || selectedImage?._id),
-          ) <
-          imageItems.length - 1
-        }
-        onPrev={() => {
-          const idx = imageItems.findIndex(
-            (img) =>
-              (img.id || img._id) === (selectedImage?.id || selectedImage?._id),
-          );
-          if (idx > 0) setSelectedImage(imageItems[idx - 1]);
-        }}
-        onNext={() => {
-          const idx = imageItems.findIndex(
-            (img) =>
-              (img.id || img._id) === (selectedImage?.id || selectedImage?._id),
-          );
-          if (idx >= 0 && idx < imageItems.length - 1)
-            setSelectedImage(imageItems[idx + 1]);
-        }}
+        onClose={() => setSelectedPreviewItem(null)}
+        image={selectedPreviewItem}
+        onDelete={handleDeleteItem}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
       />
 
-      {/* Link Preview Modal */}
       <LinkPreview
-        isOpen={!!selectedLink}
-        onClose={() => setSelectedLink(null)}
-        link={selectedLink}
-        onDelete={(id) => handleDeletePost(id, "link")}
-        hasPrev={
-          linkItems.findIndex(
-            (l) => (l.id || l._id) === (selectedLink?.id || selectedLink?._id),
-          ) > 0
+        isOpen={
+          Boolean(selectedPreviewItem) &&
+          (selectedPreviewItem?.post_type === "link" ||
+            selectedPreviewItem?.itemType === "link")
         }
-        hasNext={
-          linkItems.findIndex(
-            (l) => (l.id || l._id) === (selectedLink?.id || selectedLink?._id),
-          ) <
-          linkItems.length - 1
+        onClose={() => setSelectedPreviewItem(null)}
+        link={selectedPreviewItem}
+        onDelete={handleDeleteItem}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+      />
+
+      <NotePreview
+        isOpen={
+          Boolean(selectedPreviewItem) &&
+          (selectedPreviewItem?.post_type === "note" ||
+            selectedPreviewItem?.itemType === "note")
         }
-        onPrev={() => {
-          const idx = linkItems.findIndex(
-            (l) => (l.id || l._id) === (selectedLink?.id || selectedLink?._id),
-          );
-          if (idx > 0) setSelectedLink(linkItems[idx - 1]);
-        }}
-        onNext={() => {
-          const idx = linkItems.findIndex(
-            (l) => (l.id || l._id) === (selectedLink?.id || selectedLink?._id),
-          );
-          if (idx >= 0 && idx < linkItems.length - 1)
-            setSelectedLink(linkItems[idx + 1]);
-        }}
+        onClose={() => setSelectedPreviewItem(null)}
+        note={selectedPreviewItem}
+        onColorChange={handleColorChange}
+        onDelete={handleDeleteItem}
+        onPrev={handlePrev}
+        onNext={handleNext}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+      />
+
+      {/* Space Menu Popover */}
+      <SpaceMenuPopover
+        isOpen={spacePopover.isOpen}
+        onClose={() =>
+          setSpacePopover({ isOpen: false, item: null, targetRect: null })
+        }
+        item={spacePopover.item}
+        spaces={spaces}
+        onToggleSpace={handleToggleSpaceItem}
+        onCreateSpaceClick={handleOpenCreateSpace}
+        onDeleteSpace={handleRequestDeleteSpace}
+        targetRect={spacePopover.targetRect}
+      />
+
+      {/* Delete Space Confirmation Modal */}
+      <DeleteSpaceModal
+        isOpen={deleteModal.isOpen}
+        spaceName={deleteModal.spaceName}
+        loading={deleteModal.loading}
+        onClose={() =>
+          setDeleteModal({ isOpen: false, spaceName: "", loading: false })
+        }
+        onConfirm={handleConfirmDeleteSpace}
       />
     </Container>
   );

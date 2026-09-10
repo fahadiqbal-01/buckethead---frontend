@@ -1,10 +1,11 @@
 "use client";
 import React from "react";
-import { motion, AnimatePresence, LayoutGroup } from "motion/react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { FiCheck } from "react-icons/fi";
+import { useFilter } from "@/context/FilterContext";
 
 const COLORS = [
-  { id: "white", hex: "#fffff3" },
+  { id: "white", hex: "#fffff3", border: true },
   { id: "blue", hex: "#bfdbfe" },
   { id: "yellow", hex: "#fff085" },
   { id: "pink", hex: "#fccfe9" },
@@ -14,21 +15,23 @@ const COLORS = [
 ];
 
 const FILTER_OPTIONS = ["All", "Links", "Images", "Notes"];
-const SORT_OPTIONS = ["Last edited", "Date created"];
 
 export default function InputFiltering({
   inputRef,
   filterRef,
-  openFilter,
-  setOpenFilter,
   setOpenDrawer,
-  selectedColor,
-  setSelectedColor,
-  selectedFilter,
-  setSelectedFilter,
-  selectedSort,
-  setSelectedSort,
 }) {
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedColor,
+    setSelectedColor,
+    selectedFilter,
+    setSelectedFilter,
+    openFilter,
+    setOpenFilter,
+  } = useFilter();
+
   const handleOptionClick = (action) => {
     action();
     if (setOpenDrawer) setOpenDrawer(false);
@@ -54,10 +57,12 @@ export default function InputFiltering({
           ref={inputRef}
           type="text"
           placeholder="Find your item..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           onFocus={() => handleOptionClick(() => setOpenFilter(true))}
           onClick={() => handleOptionClick(() => setOpenFilter(true))}
           suppressHydrationWarning
-          className="border-2 border-transparent text-center text-white text-[18px] font-jetreg rounded-full bg-mud px-2 py-2 placeholder:text-white focus:bg-transparent focus:placeholder:text-mud placeholder:select-none focus:border-mud focus:text-mud duration-300 ease-out"
+          className="border-2 border-transparent text-center text-white text-[18px] font-jetreg rounded-full bg-mud px-4 py-2 placeholder:text-white/80 focus:bg-white focus:placeholder:text-mud/50 placeholder:select-none focus:border-mud focus:text-mud duration-300 ease-out shadow-sm w-80"
         />
 
         <AnimatePresence>
@@ -86,16 +91,23 @@ export default function InputFiltering({
                             type="button"
                             onClick={() =>
                               handleOptionClick(() =>
-                                setSelectedColor(isSelected ? null : color.id),
+                                setSelectedColor(isSelected ? null : color.id)
                               )
                             }
-                            className="relative w-6 h-6 rounded-full cursor-pointer flex items-center justify-center hover:ring-2 hover:ring-mud hover:ring-offset-1"
-                            style={{ backgroundColor: color.hex }}
+                            className="relative w-6 h-6 rounded-full cursor-pointer flex items-center justify-center hover:ring-2 hover:ring-mud hover:ring-offset-1 transition-transform hover:scale-105"
+                            style={{
+                              backgroundColor: color.hex,
+                              border: color.border ? "1.5px solid #d1d5db" : "none",
+                            }}
                           >
                             {isSelected && (
                               <FiCheck
                                 strokeWidth={3}
-                                className="text-white text-sm drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]"
+                                className={`text-sm ${
+                                  color.id === "white"
+                                    ? "text-gray-900"
+                                    : "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]"
+                                }`}
                               />
                             )}
                           </button>
@@ -122,7 +134,7 @@ export default function InputFiltering({
                             className={`relative flex-1 py-2 text-[14px] font-jetreg text-center transition-colors duration-150 cursor-pointer ${
                               isActive
                                 ? "text-mud font-semibold"
-                                : "text-gray-400 font-normal"
+                                : "text-gray-400 font-normal hover:text-mud/70"
                             }`}
                           >
                             {isActive && (
@@ -137,45 +149,6 @@ export default function InputFiltering({
                               />
                             )}
                             <span className="relative z-10">{filter}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* sort sec */}
-                  <div>
-                    <h3 className="text-mud text-[15px] font-jetreg font-medium mb-3">
-                      Sort
-                    </h3>
-                    <div className="bg-[#f0f0f0]/80 rounded-full p-1.5 flex items-center justify-between relative">
-                      {SORT_OPTIONS.map((sort) => {
-                        const isActive = selectedSort === sort;
-                        return (
-                          <button
-                            key={sort}
-                            type="button"
-                            onClick={() =>
-                              handleOptionClick(() => setSelectedSort(sort))
-                            }
-                            className={`relative flex-1 py-2.5 text-[14px] font-jetreg text-center transition-colors duration-150 cursor-pointer ${
-                              isActive
-                                ? "text-mud font-semibold"
-                                : "text-gray-400 font-normal"
-                            }`}
-                          >
-                            {isActive && (
-                              <motion.div
-                                layoutId="activeSortTab"
-                                className="absolute inset-0 bg-white rounded-full shadow-sm"
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 500,
-                                  damping: 32,
-                                }}
-                              />
-                            )}
-                            <span className="relative z-10">{sort}</span>
                           </button>
                         );
                       })}

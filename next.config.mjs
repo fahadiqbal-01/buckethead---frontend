@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
+const backendTarget =
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://127.0.0.1:8000";
+
 const nextConfig = {
-  reactCompiler: true,
   images: {
     remotePatterns: [
       {
@@ -13,7 +17,7 @@ const nextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://bucketheadbackend.vercel.app/:path*",
+        destination: `${backendTarget}/:path*`,
       },
     ];
   },

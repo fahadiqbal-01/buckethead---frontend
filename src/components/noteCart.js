@@ -1,10 +1,12 @@
 "use client";
 import React from "react";
+import { FiPlus } from "react-icons/fi";
 import { motion } from "framer-motion";
 
 const THEME_COLORS = {
   white: "#fffff3",
   blue: "#bfdbfe",
+  green: "#86efac",
   yellow: "#fff085",
   pink: "#fccfe9",
   orange: "#ffd7a7",
@@ -29,6 +31,7 @@ export default function NoteCart({
   size = "medium",
   className = "",
   onClick,
+  onAddClick,
 }) {
   const isSmall = size === "small";
   const bgColor = resolveColor(color);
@@ -44,12 +47,27 @@ export default function NoteCart({
       transition={{ duration: 0.3, ease: "easeOut" }}
       onClick={onClick}
       style={{ backgroundColor: bgColor }}
-      className={`w-full rounded-md cursor-zoom-in flex flex-col justify-between overflow-hidden relative transition-all duration-300 ease-out ${
+      className={`w-full rounded-md cursor-zoom-in group flex flex-col justify-between overflow-hidden relative transition-all duration-300 ease-out ${
         isSmall ? "max-h-36 min-h-24 p-3.5" : "max-h-48 min-h-32 p-5"
       } ${
         isWhite ? "border border-black/10 shadow-sm" : "shadow-sm"
       } ${isDark ? "text-white" : "text-mud"} ${className}`}
     >
+      {onAddClick && (
+        <button
+          type="button"
+          aria-label="Add to space"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddClick(e);
+          }}
+          className={`absolute top-2.5 right-2.5 z-20 w-7 h-7 rounded-full shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer ${
+            isDark ? "bg-white text-mud" : "bg-mud text-white"
+          }`}
+        >
+          <FiPlus className="text-sm stroke-[2.5]" />
+        </button>
+      )}
       <h1
         className={`font-jetbold leading-snug break-words truncate transition-all duration-300 ease-out ${
           isSmall ? "text-[13px]" : "text-[17px]"
