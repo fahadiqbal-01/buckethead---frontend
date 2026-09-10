@@ -42,7 +42,7 @@ export default function SpaceMenuPopover({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 isolate">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 isolate">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}

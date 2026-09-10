@@ -1,17 +1,30 @@
+const colorCache = new Map();
+
+export function getCachedColors(src) {
+  if (!src) return null;
+  return colorCache.get(src) || null;
+}
+
+const NEUTRAL_FALLBACK = {
+  bgColor: "#f4f4f0",
+  dominant: "#1d1919",
+  palette: ["#201213", "#73181f", "#b04043", "#e3a9a8", "#f1cdcb"],
+};
+
 /**
  * Extracts dominant colors, palette swatches, and a pastel background tint
  * from an image URL using an in-memory Canvas.
  */
 export async function extractImageColors(src) {
-  return new Promise((resolve) => {
-    if (!src || typeof window === "undefined") {
-      return resolve({
-        bgColor: "#f5e6e3",
-        dominant: "#b04043",
-        palette: ["#201213", "#73181f", "#b04043", "#e3a9a8", "#f1cdcb"],
-      });
-    }
+  if (!src || typeof window === "undefined") {
+    return NEUTRAL_FALLBACK;
+  }
 
+  if (colorCache.has(src)) {
+    return colorCache.get(src);
+  }
+
+  return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = src;
@@ -91,26 +104,20 @@ export async function extractImageColors(src) {
         const bgB = Math.round(avgB * 0.12 + 255 * 0.88);
         const bgColor = rgbToHex(bgR, bgG, bgB);
 
-        resolve({
+        const result = {
           bgColor,
           dominant: rgbToHex(avgR, avgG, avgB),
           palette,
-        });
+        };
+        colorCache.set(src, result);
+        resolve(result);
       } catch {
-        resolve({
-          bgColor: "#f5e6e3",
-          dominant: "#b04043",
-          palette: ["#201213", "#73181f", "#b04043", "#e3a9a8", "#f1cdcb"],
-        });
+        resolve(NEUTRAL_FALLBACK);
       }
     };
 
     img.onerror = () => {
-      resolve({
-        bgColor: "#f5e6e3",
-        dominant: "#b04043",
-        palette: ["#201213", "#73181f", "#b04043", "#e3a9a8", "#f1cdcb"],
-      });
+      resolve(NEUTRAL_FALLBACK);
     };
   });
 }

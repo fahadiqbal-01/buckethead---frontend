@@ -3,7 +3,7 @@ import { easeOut, motion, AnimatePresence, easeInOut } from "framer-motion";
 import { Eye, EyeClosed } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Bounce, Flip, Slide, ToastContainer, toast } from "react-toastify";
 
 export default function Welcome() {
@@ -15,6 +15,11 @@ export default function Welcome() {
 
   // router
   let router = useRouter();
+
+  // Prefetch dashboard route in background so navigation is instant
+  useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -52,11 +57,9 @@ export default function Welcome() {
       if (typeof window !== "undefined") {
         localStorage.removeItem("buckethead_posts_cache");
       }
-      setTimeout(() => {
-        setSignInEmail("");
-        setSignInPassword("");
-        router.push("/dashboard");
-      }, 1000);
+      setSignInEmail("");
+      setSignInPassword("");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Login Failed", error);
       toast.error("Email or Password incorrect", {
@@ -72,9 +75,6 @@ export default function Welcome() {
       });
       setSignIn(false);
     }
-    setTimeout(() => {
-      setSignIn(false);
-    }, 1000);
   };
 
   const handleHidePassSec = () => {

@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { FiPlus } from "react-icons/fi";
-import { motion } from "framer-motion";
 
 const THEME_COLORS = {
   white: "#fffff3",
@@ -40,11 +39,7 @@ export default function NoteCart({
   const displayText = text || title || "Untitled Note";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+    <div
       onClick={onClick}
       style={{ backgroundColor: bgColor }}
       className={`w-full rounded-md cursor-zoom-in group flex flex-col justify-between overflow-hidden relative transition-all duration-300 ease-out ${
@@ -86,6 +81,6 @@ export default function NoteCart({
           {content}
         </p>
       )}
-    </motion.div>
+    </div>
   );
 }

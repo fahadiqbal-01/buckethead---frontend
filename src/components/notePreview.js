@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LuX, LuDownload, LuTrash2 } from "react-icons/lu";
+import { FiPlus } from "react-icons/fi";
 
 export const COLOR_PALETTE = [
   { id: "white", hex: "#fffff3", border: true },
@@ -66,6 +67,7 @@ export default function NotePreview({
   note,
   onColorChange,
   onDelete,
+  onAddToSpace,
   onPrev,
   onNext,
   hasPrev = false,
@@ -270,6 +272,23 @@ export default function NotePreview({
                 >
                   <LuDownload className="text-lg" />
                 </button>
+
+                {/* Add to space */}
+                {onAddToSpace && (
+                  <button
+                    type="button"
+                    onClick={(e) => onAddToSpace(e, note)}
+                    aria-label="Add to space"
+                    className={`px-3.5 py-1.5 rounded-full active:scale-95 transition-all cursor-pointer text-[12px] font-jetreg flex items-center gap-1.5 border shadow-xs ${
+                      isDark
+                        ? "hover:bg-white/10 text-white/80 hover:text-white border-white/20 hover:border-white/40"
+                        : "hover:bg-black/5 text-black/80 hover:text-black border-black/15 hover:border-black/30"
+                    }`}
+                  >
+                    <FiPlus className="text-sm stroke-[2.5]" />
+                    <span>Add to space</span>
+                  </button>
+                )}
 
                 {/* Delete */}
                 <button

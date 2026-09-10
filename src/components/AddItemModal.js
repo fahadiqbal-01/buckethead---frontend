@@ -1,5 +1,6 @@
 "use client";
 import { authFetch } from "@/utils/authFetch";
+import { compressImage } from "@/utils/compressImage";
 import { easeOut, motion } from "framer-motion";
 import React, { useState, useEffect, useCallback } from "react";
 import { FiX, FiCheck } from "react-icons/fi";
@@ -189,8 +190,10 @@ const ImageTabForm = ({ onSubmit }) => {
       throw new Error("Cloudinary configuration missing");
     }
 
+    const fileToUpload = await compressImage(file);
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
     formData.append("upload_preset", uploadPreset);
 
     const response = await fetch(
@@ -266,9 +269,6 @@ const ImageTabForm = ({ onSubmit }) => {
     setLoading(true);
 
     try {
-      // 1-second delay to show saving state smoothly
-      await new Promise((res) => setTimeout(res, 1000));
-
       const uploadResult = await PhotoPost(imgFile, fileName, fileNote);
       onSubmit({
         type: "image",
@@ -374,8 +374,10 @@ const LinkTabForm = ({ onSubmit }) => {
       throw new Error("Cloudinary configuration missing");
     }
 
+    const fileToUpload = await compressImage(file);
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
     formData.append("upload_preset", uploadPreset);
 
     const response = await fetch(
@@ -468,9 +470,6 @@ const LinkTabForm = ({ onSubmit }) => {
     setLoading(true);
 
     try {
-      // 1-second delay for smooth saving status
-      await new Promise((res) => setTimeout(res, 1000));
-
       const uploadResult = await LinkPost(LinkFile, title, url, description);
       let formattedUrl = url.trim();
       if (
@@ -624,9 +623,6 @@ const NoteTabForm = ({ onSubmit }) => {
     setLoading(true);
 
     try {
-      // 1-second delay for smooth saving status
-      await new Promise((res) => setTimeout(res, 1000));
-
       const uploadResult = await NotePost(color, title, content);
       onSubmit({
         type: "note",
@@ -739,7 +735,6 @@ const SpaceTabForm = ({ onSubmit }) => {
     setLoading(true);
 
     try {
-      await new Promise((res) => setTimeout(res, 600));
       const selectedColorObj = COLOR_PALETTE.find((c) => c.id === color);
       const colorHex = selectedColorObj ? selectedColorObj.hex : "#fffff3";
 

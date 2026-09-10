@@ -2,7 +2,7 @@
 import React from "react";
 import { LuUnlink } from "react-icons/lu";
 import { FiPlus } from "react-icons/fi";
-import { motion } from "framer-motion";
+import { extractImageColors } from "@/utils/extractColors";
 
 const shortenText = (str, maxLength = 16) => {
   if (!str) return "";
@@ -58,11 +58,7 @@ export default function LinkCart({
       : "";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+    <div
       onClick={onClick}
       style={Object.keys(customStyle).length > 0 ? customStyle : undefined}
       className={`w-full bg-black rounded-md overflow-hidden cursor-zoom-in group relative flex flex-col transition-all duration-300 ease-out ${tailwindHeightClass} ${tailwindAspectClass} ${className}`}
@@ -83,6 +79,10 @@ export default function LinkCart({
       <img
         src={src || "/images/t.jpg"}
         alt={text || "Link preview"}
+        crossOrigin="anonymous"
+        onLoad={() => {
+          if (src) extractImageColors(src);
+        }}
         className={`w-full ${
           isExplicitSize || hasSpecificTailwindHeight ? "h-full" : "h-auto"
         } object-cover group-hover:grayscale-50 duration-300 ease-out transition-all block`}
@@ -103,6 +103,6 @@ export default function LinkCart({
           <LuUnlink className={isSmall ? "text-xs" : "text-base"} />
         </p>
       </a>
-    </motion.div>
+    </div>
   );
 }

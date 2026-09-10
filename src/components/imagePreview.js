@@ -2,7 +2,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LuX, LuDownload, LuTrash2, LuExternalLink } from "react-icons/lu";
-import { extractImageColors } from "@/utils/extractColors";
+import { FiPlus } from "react-icons/fi";
+import { extractImageColors, getCachedColors } from "@/utils/extractColors";
 
 const formatTimeAgo = (dateInput) => {
   if (!dateInput) return "Recently";
@@ -38,17 +39,12 @@ export default function ImagePreview({
   onClose,
   image,
   onDelete,
+  onAddToSpace,
   onPrev,
   onNext,
   hasPrev = false,
   hasNext = false,
 }) {
-  const [extractedData, setExtractedData] = useState({
-    bgColor: "#f5e6e3",
-    palette: DEFAULT_PALETTE,
-  });
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const src =
     image?.image_url ||
     image?.photo_url ||
@@ -56,14 +52,30 @@ export default function ImagePreview({
     image?.url ||
     "/images/t.jpg";
 
+  const [extractedData, setExtractedData] = useState(() => {
+    return (
+      getCachedColors(src) || {
+        bgColor: "#f4f4f0",
+        palette: DEFAULT_PALETTE,
+      }
+    );
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     if (!isOpen || !src) return;
+
+    const cached = getCachedColors(src);
+    if (cached) {
+      setExtractedData(cached);
+      return;
+    }
 
     let isMounted = true;
     extractImageColors(src).then((res) => {
       if (isMounted && res) {
         setExtractedData({
-          bgColor: res.bgColor || "#f5e6e3",
+          bgColor: res.bgColor || "#f4f4f0",
           palette: res.palette?.length ? res.palette : DEFAULT_PALETTE,
         });
       }
@@ -247,6 +259,19 @@ export default function ImagePreview({
                 >
                   <LuDownload className="text-lg" />
                 </button>
+
+                {/* Add to space */}
+                {onAddToSpace && (
+                  <button
+                    type="button"
+                    onClick={(e) => onAddToSpace(e, image)}
+                    aria-label="Add to space"
+                    className="px-3.5 py-1.5 rounded-full hover:bg-black/5 active:scale-95 transition-all cursor-pointer text-[12px] font-jetreg flex items-center gap-1.5 border border-black/15 text-black/80 hover:text-black hover:border-black/30 shadow-xs"
+                  >
+                    <FiPlus className="text-sm stroke-[2.5]" />
+                    <span>Add to space</span>
+                  </button>
+                )}
 
                 {/* Delete */}
                 <button

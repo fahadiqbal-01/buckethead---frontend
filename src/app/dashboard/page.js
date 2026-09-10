@@ -13,6 +13,8 @@ import DeleteSpaceModal from "@/components/DeleteSpaceModal";
 import { authFetch } from "@/utils/authFetch";
 import { useFilter } from "@/context/FilterContext";
 import { useGrid } from "@/context/GridContext";
+import { motion, AnimatePresence, easeInOut, easeOut } from "framer-motion";
+import { extractImageColors } from "@/utils/extractColors";
 
 export default function DashboardPage() {
   const { gridSize } = useGrid();
@@ -41,37 +43,110 @@ export default function DashboardPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
-  const loadAllData = async () => {
-    // Only show full loading spinner if there is no cached data already visible
+  const preloadCartImages = async (itemsList) => {
     if (
-      items.length === 0 &&
-      typeof window !== "undefined" &&
-      !localStorage.getItem(CACHE_KEY)
+      typeof window === "undefined" ||
+      !Array.isArray(itemsList) ||
+      itemsList.length === 0
     ) {
-      setLoading(true);
+      return;
     }
 
-    try {
-      const response = await authFetch(`${API_URL}/getallposts`, {
-        method: "GET",
-      });
+    const imageUrls = itemsList
+      .map((it) => {
+        if (it.post_type === "image" || it.itemType === "image") {
+          return it.image_url || it.photo_url || it.secure_url || it.url;
+        }
+        if (it.post_type === "link" || it.itemType === "link") {
+          return it.image_url || it.photo_url || it.src;
+        }
+        return null;
+      })
+      .filter(Boolean);
 
-      if (response.ok) {
-        const data = await response.json();
-        const freshItems = Array.isArray(data) ? data : [];
+    if (imageUrls.length === 0) return;
+
+    const loadPromises = imageUrls.slice(0, 15).map((src) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          extractImageColors(src).catch(() => {});
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = src;
+      });
+    });
+
+    await Promise.race([
+      Promise.all(loadPromises),
+      new Promise((res) => setTimeout(res, 1200)),
+    ]);
+  };
+
+  const loadAllDashboardData = async () => {
+    setLoading(true);
+
+    try {
+      const [postsRes, spacesRes] = await Promise.allSettled([
+        authFetch(`${API_URL}/getallposts`, { method: "GET" }),
+        authFetch(`${API_URL}/getspaces`, { method: "GET" }),
+      ]);
+
+      let freshItems = [];
+      let freshSpaces = [];
+
+      if (postsRes.status === "fulfilled" && postsRes.value.ok) {
+        const data = await postsRes.value.json();
+        freshItems = Array.isArray(data) ? data : [];
         setItems(freshItems);
         if (typeof window !== "undefined") {
           try {
             localStorage.setItem(CACHE_KEY, JSON.stringify(freshItems));
-          } catch (e) {
-            console.warn("Failed to cache posts in localStorage", e);
-          }
+          } catch (e) {}
         }
-      } else if (response.status === 401) {
-        console.warn("Session expired or unauthorized (401).");
+      } else {
+        if (typeof window !== "undefined") {
+          try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed)) freshItems = parsed;
+              setItems(freshItems);
+            }
+          } catch (e) {}
+        }
+      }
+
+      if (spacesRes.status === "fulfilled" && spacesRes.value.ok) {
+        const data = await spacesRes.value.json();
+        freshSpaces = Array.isArray(data) ? data : [];
+        setSpaces(freshSpaces);
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(SPACES_CACHE_KEY, JSON.stringify(freshSpaces));
+          } catch (e) {}
+        }
+      } else {
+        if (typeof window !== "undefined") {
+          try {
+            const cached = localStorage.getItem(SPACES_CACHE_KEY);
+            if (cached) {
+              const parsed = JSON.parse(cached);
+              if (Array.isArray(parsed)) freshSpaces = parsed;
+              setSpaces(freshSpaces);
+            }
+          } catch (e) {}
+        }
+      }
+
+      // Preload images completely before revealing carts
+      if (freshItems.length > 0) {
+        await preloadCartImages(freshItems);
       }
     } catch (err) {
-      console.error("Error loading all posts:", err);
+      console.error("Error loading dashboard data:", err);
     } finally {
       setLoading(false);
     }
@@ -101,33 +176,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    // 1. Immediately hydrate from cache on refresh with 0ms delay
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setItems(parsed);
-            setLoading(false);
-          }
-        }
-
-        const cachedSpaces = localStorage.getItem(SPACES_CACHE_KEY);
-        if (cachedSpaces) {
-          const parsedSpaces = JSON.parse(cachedSpaces);
-          if (Array.isArray(parsedSpaces)) {
-            setSpaces(parsedSpaces);
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to load cached posts/spaces:", err);
-      }
-    }
-
-    // 2. Fetch fresh data in the background (stale-while-revalidate)
-    loadAllData();
-    loadSpaces();
+    loadAllDashboardData();
 
     const handleSpaceAdded = () => {
       loadSpaces();
@@ -569,21 +618,57 @@ export default function DashboardPage() {
         onDeleteSpace={handleRequestDeleteSpace}
       />
 
-      {!loading &&
-        (items.length === 0 ? (
-          <div className="w-full py-28 flex flex-col items-center justify-center text-center ">
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="dashboard-loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="w-full py-36 flex flex-col items-center justify-center gap-3 select-none"
+          >
+            <div className="w-7 h-7 border-2 border-mud/20 border-t-mud rounded-full animate-spin" />
+            <p className="text-[13px] text-mud/60 font-jetreg tracking-wide">
+              Loading...
+            </p>
+          </motion.div>
+        ) : items.length === 0 ? (
+          <motion.div
+            key="dashboard-empty-welcome"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-full py-28 flex flex-col items-center justify-center text-center select-none"
+          >
             <h2 className="text-[22px] md:text-4xl text-mud font-jetbold tracking-tight">
               Welcome
             </h2>
-          </div>
+          </motion.div>
         ) : filteredAndSortedItems.length === 0 ? (
-          <div className="w-full py-28 flex flex-col items-center justify-center text-center">
+          <motion.div
+            key="dashboard-filtered-empty"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="w-full py-28 flex flex-col items-center justify-center text-center select-none"
+          >
             <p className="text-[16px] text-mud/60 font-jetreg tracking-wide">
               No items found matching your filters.
             </p>
-          </div>
+          </motion.div>
         ) : (
-          <div
+          <motion.div
+            key={`carts-grid-${selectedSpace || "all"}-${selectedFilter || "all"}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{
+              duration: 0.6,
+              ease: easeInOut,
+            }}
             className={`py-6 gap-6 [column-fill:_balance] select-none ${
               isSmall
                 ? "columns-2 sm:columns-3 md:columns-4 lg:columns-6 xl:columns-7"
@@ -593,12 +678,12 @@ export default function DashboardPage() {
             {filteredAndSortedItems.map((item, index) => {
               const key = item.id || `item-${index}`;
 
-              if (item.post_type === "image" || item.itemType === "image") {
-                return (
-                  <div
-                    key={key}
-                    className="break-inside-avoid mb-6 w-full flex justify-center"
-                  >
+              return (
+                <div
+                  key={key}
+                  className="break-inside-avoid mb-6 w-full flex justify-center"
+                >
+                  {item.post_type === "image" || item.itemType === "image" ? (
                     <ImageCart
                       src={
                         item.image_url ||
@@ -611,16 +696,7 @@ export default function DashboardPage() {
                       onClick={() => setSelectedPreviewItem(item)}
                       onAddClick={(e) => handleOpenSpacePopover(e, item)}
                     />
-                  </div>
-                );
-              }
-
-              if (item.post_type === "link" || item.itemType === "link") {
-                return (
-                  <div
-                    key={key}
-                    className="break-inside-avoid mb-6 w-full flex justify-center"
-                  >
+                  ) : item.post_type === "link" || item.itemType === "link" ? (
                     <LinkCart
                       src={item.image_url || "/images/bg.jpg"}
                       text={item.link_name || item.title || ""}
@@ -629,16 +705,7 @@ export default function DashboardPage() {
                       onClick={() => setSelectedPreviewItem(item)}
                       onAddClick={(e) => handleOpenSpacePopover(e, item)}
                     />
-                  </div>
-                );
-              }
-
-              if (item.post_type === "note" || item.itemType === "note") {
-                return (
-                  <div
-                    key={key}
-                    className="break-inside-avoid mb-6 w-full flex justify-center"
-                  >
+                  ) : (
                     <NoteCart
                       color={item.color || "white"}
                       title={item.node_title || item.title || ""}
@@ -647,14 +714,13 @@ export default function DashboardPage() {
                       onClick={() => setSelectedPreviewItem(item)}
                       onAddClick={(e) => handleOpenSpacePopover(e, item)}
                     />
-                  </div>
-                );
-              }
-
-              return null;
+                  )}
+                </div>
+              );
             })}
-          </div>
-        ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Preview Modals */}
       <ImagePreview
@@ -666,6 +732,7 @@ export default function DashboardPage() {
         onClose={() => setSelectedPreviewItem(null)}
         image={selectedPreviewItem}
         onDelete={handleDeleteItem}
+        onAddToSpace={(e, item) => handleOpenSpacePopover(e, item)}
         onPrev={handlePrev}
         onNext={handleNext}
         hasPrev={hasPrev}
@@ -681,6 +748,7 @@ export default function DashboardPage() {
         onClose={() => setSelectedPreviewItem(null)}
         link={selectedPreviewItem}
         onDelete={handleDeleteItem}
+        onAddToSpace={(e, item) => handleOpenSpacePopover(e, item)}
         onPrev={handlePrev}
         onNext={handleNext}
         hasPrev={hasPrev}
@@ -697,6 +765,7 @@ export default function DashboardPage() {
         note={selectedPreviewItem}
         onColorChange={handleColorChange}
         onDelete={handleDeleteItem}
+        onAddToSpace={(e, item) => handleOpenSpacePopover(e, item)}
         onPrev={handlePrev}
         onNext={handleNext}
         hasPrev={hasPrev}

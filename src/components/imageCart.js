@@ -2,7 +2,7 @@
 import React from "react";
 import { LuImage } from "react-icons/lu";
 import { FiPlus } from "react-icons/fi";
-import { motion } from "framer-motion";
+import { extractImageColors } from "@/utils/extractColors";
 
 const shortenText = (str, maxLength = 16) => {
   if (!str) return "";
@@ -57,11 +57,7 @@ export default function ImageCart({
       : "";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+    <div
       onClick={onClick}
       style={Object.keys(customStyle).length > 0 ? customStyle : undefined}
       className={`w-full bg-black rounded-md overflow-hidden cursor-zoom-in group relative flex flex-col transition-all duration-300 ease-out ${tailwindHeightClass} ${tailwindAspectClass} ${className}`}
@@ -84,6 +80,9 @@ export default function ImageCart({
         alt={text || "Image card"}
         loading="lazy"
         crossOrigin="anonymous"
+        onLoad={() => {
+          if (src) extractImageColors(src);
+        }}
         onError={(e) => {
           if (e.currentTarget.src !== "/images/t.jpg") {
             e.currentTarget.src = "/images/t.jpg";
@@ -104,6 +103,6 @@ export default function ImageCart({
           <LuImage className={isSmall ? "text-xs" : "text-base"} />
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
