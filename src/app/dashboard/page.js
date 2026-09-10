@@ -610,13 +610,13 @@ export default function DashboardPage() {
 
   return (
     <Container className=" min-h-screen ">
-      <Spaces
-        spaces={spaces}
-        selectedSpace={selectedSpace}
-        onSelectSpace={setSelectedSpace}
-        onCreateSpaceClick={handleOpenCreateSpace}
-        onDeleteSpace={handleRequestDeleteSpace}
-      />
+        <Spaces
+          spaces={spaces}
+          selectedSpace={selectedSpace}
+          onSelectSpace={setSelectedSpace}
+          onCreateSpaceClick={handleOpenCreateSpace}
+          onDeleteSpace={handleRequestDeleteSpace}
+        />
 
       <AnimatePresence mode="wait">
         {loading ? (

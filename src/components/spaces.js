@@ -23,7 +23,9 @@ export default function Spaces({
   };
 
   return (
-    <div className="w-full flex items-center gap-2 py-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden select-none">
+    <div
+      className="w-full flex items-center gap-2 py-2 overflow-x-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden select-none"
+    >
       {/* "All" button */}
       <button
         type="button"
