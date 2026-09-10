@@ -666,7 +666,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{
-              duration: 0.6,
+              duration: 0.5,
               ease: easeInOut,
             }}
             className={`py-6 gap-6 [column-fill:_balance] select-none ${

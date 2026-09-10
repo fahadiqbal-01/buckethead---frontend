@@ -3,7 +3,7 @@ import { easeOut, motion, AnimatePresence, easeInOut } from "framer-motion";
 import { Eye, EyeClosed } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Bounce, Flip, Slide, ToastContainer, toast } from "react-toastify";
 
 export default function Welcome() {
@@ -15,11 +15,6 @@ export default function Welcome() {
 
   // router
   let router = useRouter();
-
-  // Prefetch dashboard route in background so navigation is instant
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -43,7 +38,11 @@ export default function Welcome() {
     const tokenVal = data.token || data.access_token;
     if (tokenVal) {
       localStorage.setItem("access_token", tokenVal);
-      document.cookie = `access_token=${tokenVal}; path=/; max-age=604800; SameSite=Lax`;
+      const isSecure =
+        typeof window !== "undefined" && window.location.protocol === "https:"
+          ? "; Secure"
+          : "";
+      document.cookie = `access_token=${tokenVal}; path=/; max-age=604800; SameSite=Lax${isSecure}`;
     }
     return data;
   }
@@ -59,7 +58,7 @@ export default function Welcome() {
       }
       setSignInEmail("");
       setSignInPassword("");
-      router.push("/dashboard");
+      window.location.replace("/dashboard");
     } catch (error) {
       console.error("Login Failed", error);
       toast.error("Email or Password incorrect", {
