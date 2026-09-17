@@ -609,14 +609,14 @@ export default function DashboardPage() {
   };
 
   return (
-    <Container className=" min-h-screen ">
-        <Spaces
-          spaces={spaces}
-          selectedSpace={selectedSpace}
-          onSelectSpace={setSelectedSpace}
-          onCreateSpaceClick={handleOpenCreateSpace}
-          onDeleteSpace={handleRequestDeleteSpace}
-        />
+    <Container className="min-h-[calc(100vh-140px)] flex flex-col">
+      <Spaces
+        spaces={spaces}
+        selectedSpace={selectedSpace}
+        onSelectSpace={setSelectedSpace}
+        onCreateSpaceClick={handleOpenCreateSpace}
+        onDeleteSpace={handleRequestDeleteSpace}
+      />
 
       <AnimatePresence mode="wait">
         {loading ? (
@@ -626,7 +626,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="w-full py-36 flex flex-col items-center justify-center gap-3 select-none"
+            className="flex-1 w-full min-h-[calc(100vh-240px)] flex flex-col items-center justify-center gap-3 text-center select-none -translate-y-8"
           >
             <div className="w-7 h-7 border-2 border-mud/20 border-t-mud rounded-full animate-spin" />
             <p className="text-[13px] text-mud/60 font-jetreg tracking-wide">
@@ -640,7 +640,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="w-full py-28 flex flex-col items-center justify-center text-center select-none"
+            className="flex-1 w-full min-h-[calc(100vh-240px)] flex flex-col items-center justify-center text-center select-none -translate-y-8"
           >
             <h2 className="text-[22px] md:text-4xl text-mud font-jetbold tracking-tight">
               Welcome
@@ -653,7 +653,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="w-full py-28 flex flex-col items-center justify-center text-center select-none"
+            className="flex-1 w-full min-h-[calc(100vh-240px)] flex flex-col items-center justify-center text-center select-none -translate-y-8"
           >
             <p className="text-[16px] text-mud/60 font-jetreg tracking-wide">
               No items found matching your filters.

@@ -2,7 +2,7 @@
 import Container from "@/components/container";
 import AddItemModal from "@/components/AddItemModal";
 import InputFiltering from "@/components/inputfiltering";
-import { AnimatePresence, easeOut, motion } from "framer-motion";
+import { AnimatePresence, easeInOut, easeOut, motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -159,7 +159,12 @@ function DashboardLayoutContent({ children }) {
   };
 
   return (
-    <div className="relative">
+    <motion.div
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      transition={{ duration: 0.6, ease: easeInOut }}
+      className="relative"
+    >
       <nav className="p-4 pb-16 relative z-50 border-b/80 bg-white">
         <Container className=" flex flex-row justify-between items-center relative">
           <Link href="/">
@@ -298,7 +303,7 @@ function DashboardLayoutContent({ children }) {
       />
 
       <div>{children}</div>
-    </div>
+    </motion.div>
   );
 }
 
