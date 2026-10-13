@@ -165,132 +165,147 @@ function DashboardLayoutContent({ children }) {
       transition={{ duration: 0.6, ease: easeInOut }}
       className="relative"
     >
-      <nav className="p-4 pb-16 relative z-50 border-b/80 bg-white">
-        <Container className=" flex flex-row justify-between items-center relative">
-          <Link href="/">
-            <h1 className="text-4xl text-mud font-striper absolute top-0 left-0 select-none cursor-pointer ">
-              BucketHead
-            </h1>
-          </Link>
+      <nav className="py-2.5 sm:py-3.5 relative z-50 border-b border-black/5 bg-white">
+        <Container className="flex flex-col md:flex-row md:items-center md:justify-between gap-2.5 md:gap-4 relative min-h-[48px]">
+          {/* Row 1 on mobile */}
+          <div className="flex items-center justify-start shrink-0 z-10">
+            <Link href="/">
+              <h1 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl text-mud font-striper select-none cursor-pointer tracking-normal">
+                BucketHead
+              </h1>
+            </Link>
+          </div>
 
-          <InputFiltering
-            inputRef={inputRef}
-            filterRef={filterRef}
-            setOpenDrawer={setOpenDrawer}
-          />
+          {/* Row 2 on mobile */}
+          <div className="flex items-center justify-between gap-2.5 w-full md:w-auto md:contents min-h-[48px]">
+            {/* Search & Filter Dropdown */}
+            <div className="flex items-center min-w-0 md:absolute md:left-1/2 md:-translate-x-1/2 md:top-1/2 md:-translate-y-1/2 z-20">
+              <InputFiltering
+                inputRef={inputRef}
+                filterRef={filterRef}
+                setOpenDrawer={setOpenDrawer}
+              />
+            </div>
 
-          <div className=" flex flex-row justify-center items-center gap-4 absolute top-0 right-0 duration-300 ease-out">
-            <button
-              onClick={() => {
-                setAddModalTab(0);
-                setOpenAddModal(true);
-              }}
-              className=" bg-mud p-3 rounded-full cursor-pointer select-none absolute -left-16 top-0"
+            {/* Right Action Buttons */}
+            <div className="flex items-center gap-3 sm:gap-4 shrink-0 relative md:ml-auto z-10">
+              <button
+                onClick={() => {
+                  setAddModalTab(0);
+                  setOpenAddModal(true);
+                }}
+                className="bg-mud p-2.5 sm:p-3 rounded-full cursor-pointer select-none shrink-0"
+              >
+                <FaPlus className="text-xl sm:text-2xl text-white" />
+              </button>
+
+            <div
+              className="relative h-12 shrink-0 transition-[width] duration-300 ease-out"
+              style={{ width: openDrawer ? 170 : 48 }}
             >
-              <FaPlus className=" text-2xl text-white " />
-            </button>
-
-            <motion.div
-              ref={buttonRef}
-              initial={false}
-              animate={{
-                width: openDrawer ? 170 : 48,
-                height: openDrawer ? "auto" : 48,
-              }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              className="p-3 bg-mud select-none text-left overflow-hidden rounded-3xl min-h-[48px] flex flex-col justify-start items-start outline-4 outline-blue relative"
-            >
-              <AnimatePresence initial={false}>
-                {!openDrawer ? (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    whileInView={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, ease: easeOut }}
-                    key="cat-button"
-                    onClick={handleOpenDrawer}
-                    className="absolute right-0 top-0 w-fit h-fit flex items-center justify-center cursor-pointer p-0 bg-transparent border-0 "
-                  >
-                    <img
-                      src={avatarUrl || "/icons/cat.gif"}
-                      alt="User avatar"
-                      onError={() => setAvatarUrl(null)}
-                      className="w-12 h-12 rounded-full bg-white object-cover"
-                    />
-                  </motion.button>
-                ) : (
-                  <motion.div
-                    key="drawer-content"
-                    ref={drawerRef}
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="w-36.5 py-1 whitespace-nowrap overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex flex-col justify-start items-start gap-1">
-                      <motion.div
-                        onClick={handleSmallGrid}
-                        variants={itemVariants}
-                        className={`group w-full p-2 flex justify-start items-center rounded-xl cursor-pointer transition-colors duration-200 ease-out ${
-                          gridSize === "small"
-                            ? "text-white font-medium"
-                            : "text-white/50 hover:text-white"
-                        }`}
-                      >
-                        <div className="text-[14px] font-jetreg flex flex-row justify-center items-center gap-2">
-                          <img
-                            src="/icons/smallgrid.svg"
-                            className={`w-5 transition-opacity duration-200 ease-out ${
-                              gridSize === "small"
-                                ? "opacity-100"
-                                : "opacity-50 group-hover:opacity-100"
-                            }`}
-                          />
-                          Small Grid
-                        </div>
-                      </motion.div>
-
-                      <motion.div
-                        variants={itemVariants}
-                        onClick={HandleMediumGrid}
-                        className={`group w-full p-2 flex justify-start items-center rounded-xl cursor-pointer transition-colors duration-200 ease-out ${
-                          gridSize === "medium"
-                            ? "text-white font-medium"
-                            : "text-white/50 hover:text-white"
-                        }`}
-                      >
-                        <div className="text-[14px] font-jetreg flex flex-row justify-start items-center gap-2">
-                          <img
-                            src="/images/biggrid.svg"
-                            className={`w-5 transition-opacity duration-200 ease-out ${
-                              gridSize === "medium"
-                                ? "opacity-100"
-                                : "opacity-50 group-hover:opacity-100"
-                            }`}
-                          />
-                          Medium Grid
-                        </div>
-                      </motion.div>
-                    </div>
-                    <motion.div
-                      variants={itemVariants}
-                      onClick={handleSettings}
-                      className="group text-[14px] text-white/50 hover:text-white font-jetreg flex flex-row justify-start items-center gap-2 mt-3 p-2 rounded-xl transition-colors duration-200 ease-out cursor-pointer"
+              <motion.div
+                ref={buttonRef}
+                initial={false}
+                animate={{
+                  width: openDrawer ? 170 : 48,
+                  height: openDrawer ? "auto" : 48,
+                }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="p-3 bg-mud select-none text-left overflow-hidden rounded-3xl min-h-[48px] flex flex-col justify-start items-start outline-4 outline-blue absolute top-0 right-0 z-50 shadow-2xl"
+              >
+                <AnimatePresence initial={false}>
+                  {!openDrawer ? (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      whileInView={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.4, ease: easeOut }}
+                      key="cat-button"
+                      onClick={handleOpenDrawer}
+                      className="absolute right-0 top-0 w-fit h-fit flex items-center justify-center cursor-pointer p-0 bg-transparent border-0"
                     >
                       <img
-                        src="/icons/settings.svg"
-                        className="w-5 opacity-50 group-hover:opacity-100 transition-opacity duration-200 ease-out"
+                        src={avatarUrl || "/icons/cat.gif"}
+                        alt="User avatar"
+                        onError={() => setAvatarUrl(null)}
+                        className="w-12 h-12 rounded-full bg-white object-cover"
                       />
-                      Settings
+                    </motion.button>
+                  ) : (
+                    <motion.div
+                      key="drawer-content"
+                      ref={drawerRef}
+                      variants={containerVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="w-36.5 py-1 whitespace-nowrap overflow-hidden"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex flex-col justify-start items-start gap-1">
+                        <motion.div
+                          onClick={handleSmallGrid}
+                          variants={itemVariants}
+                          className={`group w-full p-2 flex justify-start items-center rounded-xl cursor-pointer transition-colors duration-200 ease-out ${
+                            gridSize === "small"
+                              ? "text-white font-medium"
+                              : "text-white/50 hover:text-white"
+                          }`}
+                        >
+                          <div className="text-[14px] font-jetreg flex flex-row justify-center items-center gap-2">
+                            <img
+                              src="/icons/smallgrid.svg"
+                              className={`w-5 transition-opacity duration-200 ease-out ${
+                                gridSize === "small"
+                                  ? "opacity-100"
+                                  : "opacity-50 group-hover:opacity-100"
+                              }`}
+                            />
+                            Small Grid
+                          </div>
+                        </motion.div>
+
+                        <motion.div
+                          variants={itemVariants}
+                          onClick={HandleMediumGrid}
+                          className={`group w-full p-2 flex justify-start items-center rounded-xl cursor-pointer transition-colors duration-200 ease-out ${
+                            gridSize === "medium"
+                              ? "text-white font-medium"
+                              : "text-white/50 hover:text-white"
+                          }`}
+                        >
+                          <div className="text-[14px] font-jetreg flex flex-row justify-start items-center gap-2">
+                            <img
+                              src="/images/biggrid.svg"
+                              className={`w-5 transition-opacity duration-200 ease-out ${
+                                gridSize === "medium"
+                                  ? "opacity-100"
+                                  : "opacity-50 group-hover:opacity-100"
+                              }`}
+                            />
+                            Medium Grid
+                          </div>
+                        </motion.div>
+                      </div>
+                      <motion.div
+                        variants={itemVariants}
+                        onClick={handleSettings}
+                        className="group text-[14px] text-white/50 hover:text-white font-jetreg flex flex-row justify-start items-center gap-2 mt-3 p-2 rounded-xl transition-colors duration-200 ease-out cursor-pointer"
+                      >
+                        <img
+                          src="/icons/settings.svg"
+                          className="w-5 opacity-50 group-hover:opacity-100 transition-opacity duration-200 ease-out"
+                        />
+                        Settings
+                      </motion.div>
                     </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </div>
           </div>
-        </Container>
-      </nav>
+        </div>
+      </Container>
+    </nav>
 
       {/* Add Item Modal Section */}
       <AddItemModal

@@ -1,7 +1,13 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, easeOut, easeInOut } from "framer-motion";
-import { LuX, LuDownload, LuTrash2 } from "react-icons/lu";
+import {
+  LuX,
+  LuDownload,
+  LuTrash2,
+  LuChevronLeft,
+  LuChevronRight,
+} from "react-icons/lu";
 import { FiPlus } from "react-icons/fi";
 
 export const COLOR_PALETTE = [
@@ -149,7 +155,7 @@ export default function NotePreview({
   return (
     <AnimatePresence>
       {isOpen && note && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 isolate">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 isolate">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -167,38 +173,68 @@ export default function NotePreview({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.3, ease: easeOut }}
-            className="relative z-10 w-full max-w-240 bg-white rounded-[36px] p-6 md:p-4 shadow-2xl flex flex-col gap-4 select-none overflow-hidden"
+            className="relative z-10 w-full max-w-240 2xl:max-w-[1040px] bg-white rounded-2xl sm:rounded-3xl lg:rounded-[36px] p-3.5 sm:p-5 lg:p-6 shadow-2xl flex flex-col gap-4 select-none max-h-[92vh] sm:max-h-[88vh] overflow-y-auto"
           >
             {/* Inner Note Content Box */}
             <div
               style={{ backgroundColor: currentColorHex }}
-              className={`w-full rounded-[28px] p-7 md:p-8 flex flex-col justify-between min-h-140 transition-colors duration-300 relative ${
+              className={`w-full rounded-xl sm:rounded-2xl lg:rounded-[28px] p-4 sm:p-7 md:p-8 flex flex-col justify-between min-h-[340px] sm:min-h-[440px] md:min-h-140 transition-colors duration-300 relative ${
                 isDark ? "text-white" : "text-black"
               }`}
             >
-              {/* close btn */}
-              <div className="flex items-center justify-between shrink-0 absolute top-3 right-3">
+              {/* Top Navigation Bar: Prev/Next & Close */}
+              <div className="flex items-center justify-between shrink-0 absolute top-3 sm:top-4 right-3 sm:right-4 gap-2 z-20">
+                {/* Prev / Next buttons if available */}
+                {(onPrev || onNext) && (
+                  <div
+                    className={`flex items-center gap-1 sm:gap-1.5 rounded-full p-1 border shadow-xs ${
+                      isDark
+                        ? "bg-black/40 border-white/20 text-white"
+                        : "bg-white/80 border-black/10 text-black"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      disabled={!hasPrev}
+                      onClick={onPrev}
+                      aria-label="Previous note"
+                      className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    >
+                      <LuChevronLeft className="text-sm sm:text-base" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!hasNext}
+                      onClick={onNext}
+                      aria-label="Next note"
+                      className="w-6.5 h-6.5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    >
+                      <LuChevronRight className="text-sm sm:text-base" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Close Button */}
                 <button
                   type="button"
                   onClick={handleClose}
                   aria-label="Close preview"
-                  className="w-9 h-9 rounded-full bg-white hover:bg-black/5 border border-black/10 flex items-center justify-center cursor-pointer text-black transition-colors"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-black/5 border border-black/10 flex items-center justify-center cursor-pointer text-black transition-colors shadow-sm"
                 >
-                  <LuX className="text-lg" />
+                  <LuX className="text-base sm:text-lg" />
                 </button>
               </div>
 
               {/* Top Details */}
               <div className="flex flex-col">
                 {/* Title */}
-                <h2 className="text-2xl md:text-[26px] font-bold font-jetbold tracking-tight leading-snug break-words">
+                <h2 className="text-xl sm:text-2xl md:text-[26px] 2xl:text-3xl font-bold font-jetbold tracking-tight leading-snug break-words pr-20 sm:pr-24">
                   {title}
                 </h2>
 
                 {/* Timestamp */}
                 <p
-                  className={`text-sm font-jetreg mt-1.5 ${
+                  className={`text-xs sm:text-sm font-jetreg mt-1 sm:mt-1.5 ${
                     isDark ? "text-white/60" : "text-black/50"
                   }`}
                 >
@@ -206,7 +242,7 @@ export default function NotePreview({
                 </p>
 
                 {/* Dynamic Theme Color Dots */}
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-3 sm:mt-4 flex-wrap">
                   {COLOR_PALETTE.map((col) => {
                     const isSelected = activeColor === col.id;
                     return (
@@ -217,7 +253,7 @@ export default function NotePreview({
                         onClick={() => handleColorSelect(col.id)}
                         style={{ backgroundColor: col.hex }}
                         aria-label={`Select color ${col.id}`}
-                        className={`w-5 h-5 rounded-full border border-black/15 shadow-xs transition-transform duration-200 hover:scale-110 flex items-center justify-center ${
+                        className={`w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full border border-black/15 shadow-xs transition-transform duration-200 hover:scale-110 flex items-center justify-center ${
                           isColorUpdating ? "cursor-wait" : "cursor-pointer"
                         } ${
                           isSelected
@@ -235,7 +271,7 @@ export default function NotePreview({
 
                 {/* Section Heading: Note */}
                 <p
-                  className={`text-sm font-semibold font-jetreg mt-6 ${
+                  className={`text-xs sm:text-sm font-semibold font-jetreg mt-4 sm:mt-6 ${
                     isDark ? "text-white/50" : "text-black/40"
                   }`}
                 >
@@ -244,7 +280,7 @@ export default function NotePreview({
 
                 {/* Note Content Text */}
                 <div
-                  className={`mt-2 text-[15px] font-normal font-jetreg leading-relaxed whitespace-pre-wrap break-words max-h-70 overflow-y-auto pr-2 ${
+                  className={`mt-1.5 sm:mt-2 text-sm sm:text-[15px] font-normal font-jetreg leading-relaxed whitespace-pre-wrap break-words max-h-56 sm:max-h-70 overflow-y-auto pr-2 ${
                     isDark
                       ? "text-white/90 thin-scrollbar-dark"
                       : "text-black/90 thin-scrollbar"
@@ -258,7 +294,7 @@ export default function NotePreview({
 
               {/* Bottom Actions Toolbar */}
               <div
-                className={`flex items-center justify-between pt-6 mt-6 border-t ${
+                className={`flex items-center justify-between pt-4 sm:pt-6 mt-4 sm:mt-6 border-t ${
                   isDark
                     ? "border-white/10 text-white/70"
                     : "border-black/5 text-black/70"
@@ -269,9 +305,9 @@ export default function NotePreview({
                   type="button"
                   onClick={handleDownload}
                   aria-label="Download note"
-                  className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer hover:text-black dark:hover:text-white"
+                  className="p-1.5 sm:p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer hover:text-black dark:hover:text-white"
                 >
-                  <LuDownload className="text-lg" />
+                  <LuDownload className="text-base sm:text-lg" />
                 </button>
 
                 {/* Add to space */}
@@ -280,13 +316,13 @@ export default function NotePreview({
                     type="button"
                     onClick={(e) => onAddToSpace(e, note)}
                     aria-label="Add to space"
-                    className={`px-3.5 py-1.5 rounded-full active:scale-95 transition-all cursor-pointer text-[12px] font-jetreg flex items-center gap-1.5 border shadow-xs ${
+                    className={`px-3 sm:px-3.5 py-1.5 rounded-full active:scale-95 transition-all cursor-pointer text-[11px] sm:text-[12px] font-jetreg flex items-center gap-1.5 border shadow-xs ${
                       isDark
                         ? "hover:bg-white/10 text-white/80 hover:text-white border-white/20 hover:border-white/40"
                         : "hover:bg-black/5 text-black/80 hover:text-black border-black/15 hover:border-black/30"
                     }`}
                   >
-                    <FiPlus className="text-sm stroke-[2.5]" />
+                    <FiPlus className="text-xs sm:text-sm stroke-[2.5]" />
                     <span>Add to space</span>
                   </button>
                 )}
@@ -297,12 +333,12 @@ export default function NotePreview({
                   onClick={handleDelete}
                   disabled={isDeleting}
                   aria-label="Delete note"
-                  className="p-2 rounded-full hover:bg-red-500/10 text-red-500/80 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50"
+                  className="p-1.5 sm:p-2 rounded-full hover:bg-red-500/10 text-red-500/80 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isDeleting ? (
                     <span className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin inline-block" />
                   ) : (
-                    <LuTrash2 className="text-lg" />
+                    <LuTrash2 className="text-base sm:text-lg" />
                   )}
                 </button>
               </div>

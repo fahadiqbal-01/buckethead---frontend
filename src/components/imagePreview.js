@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LuX, LuDownload, LuTrash2, LuExternalLink } from "react-icons/lu";
+import { LuX, LuDownload, LuTrash2, LuExternalLink, LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import { FiPlus } from "react-icons/fi";
 import { extractImageColors, getCachedColors } from "@/utils/extractColors";
 
@@ -145,7 +145,7 @@ export default function ImagePreview({
   return (
     <AnimatePresence>
       {isOpen && image && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 isolate">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 isolate">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -163,10 +163,10 @@ export default function ImagePreview({
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             style={{ backgroundColor: extractedData.bgColor }}
-            className="relative z-10 w-full max-w-[1240px] h-[88vh] max-h-[820px] rounded-[36px] p-5 md:p-6 shadow-2xl flex flex-col lg:flex-row gap-5 select-none overflow-hidden transition-colors duration-500"
+            className="relative z-10 w-full max-w-[1240px] 2xl:max-w-[1480px] h-full max-h-[92vh] sm:max-h-[88vh] 2xl:max-h-[920px] rounded-2xl sm:rounded-3xl lg:rounded-[36px] p-3.5 sm:p-5 lg:p-6 shadow-2xl flex flex-col lg:flex-row gap-3 sm:gap-5 select-none overflow-y-auto lg:overflow-hidden transition-colors duration-500"
           >
             {/* LEFT: Media Canvas Stage */}
-            <div className="flex-1 flex flex-col justify-between relative overflow-hidden h-full">
+            <div className="flex-1 flex flex-col justify-between relative shrink-0 lg:shrink lg:h-full min-h-[300px] sm:min-h-[400px] lg:min-h-0">
               {/* Top Navigation Bar inside stage */}
               <div className="flex items-center justify-between z-20 shrink-0">
                 {/* Close Button */}
@@ -174,72 +174,96 @@ export default function ImagePreview({
                   type="button"
                   onClick={handleClose}
                   aria-label="Close preview"
-                  className="w-9 h-9 rounded-full bg-white hover:bg-black/5 border border-black/10 flex items-center justify-center cursor-pointer text-black transition-colors shadow-sm"
+                  className="w-8.5 h-8.5 sm:w-9 sm:h-9 rounded-full bg-white hover:bg-black/5 border border-black/10 flex items-center justify-center cursor-pointer text-black transition-colors shadow-sm"
                 >
-                  <LuX className="text-lg" />
+                  <LuX className="text-base sm:text-lg" />
                 </button>
+
+                {/* Prev / Next buttons if available */}
+                {(onPrev || onNext) && (
+                  <div className="flex items-center gap-1.5 bg-white/80 backdrop-blur-sm rounded-full p-1 border border-black/10 shadow-xs">
+                    <button
+                      type="button"
+                      disabled={!hasPrev}
+                      onClick={onPrev}
+                      aria-label="Previous image"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-black/70 hover:text-black hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    >
+                      <LuChevronLeft className="text-base" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!hasNext}
+                      onClick={onNext}
+                      aria-label="Next image"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-black/70 hover:text-black hover:bg-black/5 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer disabled:cursor-not-allowed transition-colors"
+                    >
+                      <LuChevronRight className="text-base" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Central Main Image Container */}
-              <div className="flex-1 flex items-center justify-center p-2 md:p-6 relative overflow-hidden">
-                <div className="relative max-h-full max-w-full flex items-center justify-center rounded-[24px] overflow-hidden group">
+              <div className="flex-1 flex items-center justify-center p-1 sm:p-3 lg:p-6 relative overflow-hidden my-2 sm:my-0">
+                <div className="relative max-h-full max-w-full flex items-center justify-center rounded-xl sm:rounded-[24px] overflow-hidden group">
                   <img
                     src={src}
                     alt={title}
                     crossOrigin="anonymous"
-                    className="max-h-[58vh] max-w-full object-contain rounded-[20px] shadow-sm block"
+                    className="max-h-[38vh] sm:max-h-[48vh] lg:max-h-[58vh] 2xl:max-h-[66vh] max-w-full object-contain rounded-xl sm:rounded-[20px] shadow-sm block"
                   />
                 </div>
               </div>
 
               {/* Bottom Sub-bar under image */}
-              <div className="w-full flex items-center justify-center px-4 pb-2 z-10">
-                <div className="w-full max-w-md bg-white/40 backdrop-blur-md rounded-xl px-4 py-2 flex items-center justify-between text-black/80 border border-white/30 text-sm font-jetreg">
+              <div className="w-full flex items-center justify-center px-2 sm:px-4 pb-1 sm:pb-2 z-10">
+                <div className="w-full max-w-md bg-white/40 backdrop-blur-md rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between text-black/80 border border-white/30 text-xs sm:text-sm font-jetreg">
                   <span className="truncate pr-2">{title}</span>
                   <button
                     type="button"
                     onClick={() => window.open(src, "_blank")}
                     aria-label="Open full image"
-                    className="hover:text-black transition-colors cursor-pointer"
+                    className="hover:text-black transition-colors cursor-pointer shrink-0"
                   >
-                    <LuExternalLink className="text-base shrink-0" />
+                    <LuExternalLink className="text-sm sm:text-base" />
                   </button>
                 </div>
               </div>
             </div>
 
             {/* RIGHT: Details Sidebar Panel */}
-            <div className="w-full lg:w-[350px] shrink-0 bg-white/40 backdrop-blur-md rounded-[28px] p-6 md:p-7 flex flex-col justify-between border border-white/40 h-full overflow-hidden">
+            <div className="w-full lg:w-[350px] 2xl:w-[400px] shrink-0 bg-white/40 backdrop-blur-md rounded-2xl sm:rounded-[28px] p-4 sm:p-6 lg:p-7 flex flex-col justify-between border border-white/40 h-auto lg:h-full">
               {/* Top Details */}
               <div className="flex flex-col">
                 {/* Title */}
-                <h2 className="text-2xl font-bold font-jetbold tracking-tight text-black leading-snug break-words">
+                <h2 className="text-xl sm:text-2xl 2xl:text-3xl font-bold font-jetbold tracking-tight text-black leading-snug break-words">
                   {title}
                 </h2>
 
                 {/* Timestamp */}
-                <p className="text-sm font-jetreg text-black/50 mt-1.5">
+                <p className="text-xs sm:text-sm font-jetreg text-black/50 mt-1 sm:mt-1.5">
                   {timeString}
                 </p>
 
                 {/* Dynamic Extracted Palette Dots */}
-                <div className="flex items-center gap-2 mt-4">
+                <div className="flex items-center gap-1.5 sm:gap-2 mt-3 sm:mt-4 flex-wrap">
                   {extractedData.palette.map((hex, i) => (
                     <span
                       key={i}
                       style={{ backgroundColor: hex }}
-                      className="w-5 h-5 rounded-full border border-black/10 shadow-xs transition-transform duration-200 hover:scale-110"
+                      className="w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full border border-black/10 shadow-xs transition-transform duration-200 hover:scale-110 shrink-0"
                     />
                   ))}
                 </div>
 
                 {/* Note Heading */}
-                <p className="text-sm font-semibold font-jetreg text-black/40 mt-6">
+                <p className="text-xs sm:text-sm font-semibold font-jetreg text-black/40 mt-4 sm:mt-6">
                   Note
                 </p>
 
                 {/* Note Content */}
-                <div className="mt-2 text-[14px] font-normal font-jetreg text-black/80 leading-relaxed whitespace-pre-wrap max-h-52 overflow-y-auto pr-1 thin-scrollbar">
+                <div className="mt-1.5 sm:mt-2 text-[13px] sm:text-[14px] font-normal font-jetreg text-black/80 leading-relaxed whitespace-pre-wrap max-h-36 sm:max-h-52 2xl:max-h-72 overflow-y-auto pr-1 thin-scrollbar">
                   {note || (
                     <span className="text-black/40 italic">
                       Type here to add some thoughts...
@@ -249,7 +273,7 @@ export default function ImagePreview({
               </div>
 
               {/* Bottom Actions Toolbar */}
-              <div className="flex items-center justify-between pt-5 mt-6 border-t border-black/10 text-black/70">
+              <div className="flex items-center justify-between pt-4 sm:pt-5 mt-4 sm:mt-6 border-t border-black/10 text-black/70">
                 {/* Download */}
                 <button
                   type="button"
@@ -257,7 +281,7 @@ export default function ImagePreview({
                   aria-label="Download image"
                   className="p-2 rounded-full hover:bg-black/5 transition-colors cursor-pointer hover:text-black"
                 >
-                  <LuDownload className="text-lg" />
+                  <LuDownload className="text-base sm:text-lg" />
                 </button>
 
                 {/* Add to space */}
@@ -266,9 +290,9 @@ export default function ImagePreview({
                     type="button"
                     onClick={(e) => onAddToSpace(e, image)}
                     aria-label="Add to space"
-                    className="px-3.5 py-1.5 rounded-full hover:bg-black/5 active:scale-95 transition-all cursor-pointer text-[12px] font-jetreg flex items-center gap-1.5 border border-black/15 text-black/80 hover:text-black hover:border-black/30 shadow-xs"
+                    className="px-3 sm:px-3.5 py-1.5 rounded-full hover:bg-black/5 active:scale-95 transition-all cursor-pointer text-[11px] sm:text-[12px] font-jetreg flex items-center gap-1.5 border border-black/15 text-black/80 hover:text-black hover:border-black/30 shadow-xs"
                   >
-                    <FiPlus className="text-sm stroke-[2.5]" />
+                    <FiPlus className="text-xs sm:text-sm stroke-[2.5]" />
                     <span>Add to space</span>
                   </button>
                 )}
@@ -284,7 +308,7 @@ export default function ImagePreview({
                   {isDeleting ? (
                     <span className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin inline-block" />
                   ) : (
-                    <LuTrash2 className="text-lg" />
+                    <LuTrash2 className="text-base sm:text-lg" />
                   )}
                 </button>
               </div>
